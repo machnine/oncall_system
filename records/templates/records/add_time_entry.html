@@ -1,0 +1,17 @@
+{% extends 'records/time_entry_base.html' %}
+
+{% block entry_title %}Add Time Entry{% endblock entry_title %}
+
+{% block entry_header %}<i class="bi bi-plus-circle"></i> Add Time Entry - {{ shift.date|date:"d/m/Y" }} ({{ shift.day_type }}){% endblock entry_header %}
+
+{% block back_button %}
+<a href="{% url 'shift_detail' shift.id %}" class="btn btn-secondary me-md-2">
+    <i class="bi bi-arrow-left"></i> Back
+</a>
+{% endblock back_button %}
+
+{% block submit_button %}
+<button type="submit" class="btn btn-success">
+    <i class="bi bi-save"></i> Save
+</button>
+{% endblock submit_button %}
