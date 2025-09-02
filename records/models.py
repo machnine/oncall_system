@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 from datetime import datetime, time, timedelta
 
 
@@ -32,7 +33,7 @@ class Detail(models.Model):
         return self.text[:50] + "..." if len(self.text) > 50 else self.text
 
 
-class Shift(models.Model):
+class Block(models.Model):
     DAY_TYPES = [
         ('Weekday', 'Weekday'),
         ('Saturday', 'Saturday'),
@@ -43,9 +44,12 @@ class Shift(models.Model):
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     date = models.DateField()
     day_type = models.CharField(max_length=20, choices=DAY_TYPES, default='Weekday')
+    created = models.DateTimeField(default=timezone.now)
+    last_modified = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ('staff', 'date')
+        # Removed unique_together to allow multiple blocks per day
+        pass
     
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -53,7 +57,7 @@ class Shift(models.Model):
         
         # Prevent future dates
         if self.date and self.date > timezone.now().date():
-            raise ValidationError("Shift date cannot be in the future.")
+            raise ValidationError("Block date cannot be in the future.")
     
     def save(self, *args, **kwargs):
         if not self.day_type:
@@ -70,19 +74,21 @@ class Shift(models.Model):
 
 
 class TimeEntry(models.Model):
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='time_entries')
+    block = models.ForeignKey(Block, on_delete=models.CASCADE, related_name='time_entries')
     time_started = models.TimeField()
     time_ended = models.TimeField()
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     detail = models.ForeignKey(Detail, on_delete=models.SET_NULL, null=True, blank=True)
     work_mode = models.ForeignKey(WorkMode, on_delete=models.CASCADE)
     claim = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    created = models.DateTimeField(default=timezone.now)
+    last_modified = models.DateTimeField(auto_now=True)
     
     @property
     def hours(self):
-        """Calculate hours worked, handling overnight shifts (17:30-08:30+1)"""
-        start = datetime.combine(self.shift.date, self.time_started)
-        end = datetime.combine(self.shift.date, self.time_ended)
+        """Calculate hours worked, handling overnight blocks (17:30-08:30+1)"""
+        start = datetime.combine(self.block.date, self.time_started)
+        end = datetime.combine(self.block.date, self.time_ended)
         
         # If end time is before start time, it's the next day
         if self.time_ended <= self.time_started:
@@ -99,4 +105,4 @@ class TimeEntry(models.Model):
             raise ValidationError("Start time and end time cannot be the same.")
     
     def __str__(self):
-        return f"{self.shift.staff.assignment_id} - {self.shift.date} - {self.task.name} ({self.hours}h)"
+        return f"{self.block.staff.assignment_id} - {self.block.date} - {self.task.name} ({self.hours}h)"

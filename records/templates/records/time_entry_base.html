@@ -2,7 +2,7 @@
 {% block title %}
     {% block entry_title %}
     {% endblock entry_title %}
-    - {{ shift.date|date:"d M Y" }}
+    - {{ block.date|date:"d M Y" }}
 {% endblock title %}
 {% block content %}
     <div class="row justify-content-center">
@@ -96,7 +96,7 @@ function setClaimHours(hours) {
             const startTime = new Date('1970-01-01T' + startTimeInput.value + ':00');
             let endTime = new Date('1970-01-01T' + endTimeInput.value + ':00');
             
-            // Handle overnight shifts (end time before start time)
+            // Handle overnight blocks (end time before start time)
             if (endTime <= startTime) {
                 endTime.setDate(endTime.getDate() + 1);
             }

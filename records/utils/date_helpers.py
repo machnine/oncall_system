@@ -79,18 +79,18 @@ def build_month_context(month, year):
     current_month_start, _ = get_month_date_range(year, month)
     prev_month, prev_year, next_month, next_year = get_month_navigation(month, year)
     
-    # Get available years based on actual shift data (will be imported when used)
-    from ..models import Shift
+    # Get available years based on actual block data (will be imported when used)
+    from ..models import Block
     available_years = []
-    shift_years = Shift.objects.dates('date', 'year')
-    if shift_years:
-        available_years = [d.year for d in shift_years]
+    block_years = Block.objects.dates('date', 'year')
+    if block_years:
+        available_years = [d.year for d in block_years]
         # Ensure current year is included
         if today.year not in available_years:
             available_years.append(today.year)
         available_years.sort()
     else:
-        # If no shifts exist yet, at least show current year
+        # If no blocks exist yet, at least show current year
         available_years = [today.year]
     
     return {

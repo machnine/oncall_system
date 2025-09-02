@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (row.classList.contains('collapse')) return;
             
             row.addEventListener('mouseenter', function() {
-                const actions = this.querySelector('.shift-actions, .entry-actions');
+                const actions = this.querySelector('.block-actions, .entry-actions');
                 if (actions) {
                     actions.style.opacity = '1';
                 }
             });
             
             row.addEventListener('mouseleave', function() {
-                const actions = this.querySelector('.shift-actions, .entry-actions');
+                const actions = this.querySelector('.block-actions, .entry-actions');
                 if (actions) {
                     actions.style.opacity = '0';
                 }
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 
     // Handle chevron rotation on collapse toggle
-    var collapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]:not(#toggleAllShifts)');
+    var collapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]:not(#toggleAllBlocks)');
     collapseElements.forEach(function(element) {
         var target = document.querySelector(element.getAttribute('data-bs-target'));
         var chevron = element.querySelector('i');
@@ -64,34 +64,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle toggle all shifts
-    var toggleAllBtn = document.getElementById('toggleAllShifts');
+    // Handle toggle all blocks
+    var toggleAllBtn = document.getElementById('toggleAllBlocks');
     if (toggleAllBtn) {
         var allExpanded = false; // Default state is collapsed
         
         toggleAllBtn.addEventListener('click', function() {
-            var shiftCollapses = document.querySelectorAll('[id^="shift-"]');
+            var blockCollapses = document.querySelectorAll('[id^="block-"]');
             var toggleIcon = this.querySelector('i');
             
             if (allExpanded) {
                 // Collapse all
-                shiftCollapses.forEach(function(collapse) {
+                blockCollapses.forEach(function(collapse) {
                     var bsCollapse = new bootstrap.Collapse(collapse, {show: false});
                     bsCollapse.hide();
                 });
                 toggleIcon.className = 'bi bi-caret-down-fill';
-                this.setAttribute('data-original-title', 'Expand all shifts');
-                this.setAttribute('title', 'Expand all shifts');
+                this.setAttribute('data-original-title', 'Expand all blocks');
+                this.setAttribute('title', 'Expand all blocks');
                 allExpanded = false;
             } else {
                 // Expand all
-                shiftCollapses.forEach(function(collapse) {
+                blockCollapses.forEach(function(collapse) {
                     var bsCollapse = new bootstrap.Collapse(collapse, {show: true});
                     bsCollapse.show();
                 });
                 toggleIcon.className = 'bi bi-caret-up-fill';
-                this.setAttribute('data-original-title', 'Collapse all shifts');
-                this.setAttribute('title', 'Collapse all shifts');
+                this.setAttribute('data-original-title', 'Collapse all blocks');
+                this.setAttribute('title', 'Collapse all blocks');
                 allExpanded = true;
             }
         });

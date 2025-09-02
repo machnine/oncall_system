@@ -1,9 +1,10 @@
 from django import forms
 from django.utils import timezone
-from .models import Shift, TimeEntry, Detail
+from govuk_bank_holidays.bank_holidays import BankHolidays
+from .models import Block, TimeEntry, Detail
 
 
-class ShiftForm(forms.ModelForm):
+class BlockForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set default date to today if this is a new form (no instance)
@@ -17,15 +18,61 @@ class ShiftForm(forms.ModelForm):
     def clean_date(self):
         date = self.cleaned_data.get('date')
         if date and date > timezone.now().date():
-            raise forms.ValidationError("Shift date cannot be in the future.")
+            raise forms.ValidationError("Block date cannot be in the future.")
         return date
     
+    def get_day_type(self, date):
+        """Automatically determine day type based on date using official UK government data"""
+        if not date:
+            return None
+            
+        # Get UK bank holidays from official government data
+        bank_holidays = BankHolidays()
+        uk_holidays = bank_holidays.get_holidays('england-and-wales', date.year)
+        
+        # Create a set of holiday dates for efficient lookup
+        holiday_dates = {holiday['date'] for holiday in uk_holidays}
+        
+        # Check if it's a bank holiday
+        if date in holiday_dates:
+            return 'Bank Holiday'
+        
+        # Check day of week (Monday=0, Sunday=6)
+        weekday = date.weekday()
+        
+        if weekday < 5:  # Monday-Friday (0-4)
+            return 'Weekday'
+        elif weekday == 5:  # Saturday
+            return 'Saturday'
+        else:  # Sunday
+            return 'Sunday'
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        date = cleaned_data.get('date')
+        
+        # Auto-detect and set day type
+        if date:
+            cleaned_data['day_type'] = self.get_day_type(date)
+            
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Set the auto-detected day type
+        if hasattr(self, 'cleaned_data') and 'day_type' in self.cleaned_data:
+            instance.day_type = self.cleaned_data['day_type']
+        
+        if commit:
+            instance.save()
+        return instance
+    
     class Meta:
-        model = Shift
-        fields = ['date', 'day_type']
+        model = Block
+        fields = ['date']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'day_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
 

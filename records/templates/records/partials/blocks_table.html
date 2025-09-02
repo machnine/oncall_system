@@ -1,22 +1,22 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5><i class="bi bi-list"></i> Shifts</h5>
+        <h5><i class="bi bi-list"></i> Blocks</h5>
         <div class="d-flex align-items-center">
             {% if not is_admin_view and is_current_month %}
-                <a href="{% url 'add_shift' %}" class="btn btn-outline-success border-0" data-bs-toggle="tooltip" title="Add a new shift">
+                <a href="{% url 'add_block' %}" class="btn btn-outline-success border-0" data-bs-toggle="tooltip" title="Add a new block">
                     <i class="bi bi-plus-circle"></i>
                 </a>
             {% endif %}
-            {% if shifts %}
-                <button id="toggleAllShifts" class="btn btn-outline-dark border-0 {% if not is_admin_view and is_current_month %}ms-2{% endif %}" 
-                        data-bs-toggle="tooltip" title="Expand all shifts">
+            {% if blocks %}
+                <button id="toggleAllBlocks" class="btn btn-outline-dark border-0 {% if not is_admin_view and is_current_month %}ms-2{% endif %}" 
+                        data-bs-toggle="tooltip" title="Expand all blocks">
                     <i class="bi bi-caret-down-fill"></i>
                 </button>
             {% endif %}
         </div>
     </div>
     <div class="card-body">
-        {% if shifts %}
+        {% if blocks %}
             <div class="table-responsive">
                 <table class="table">
                     <thead>
@@ -33,59 +33,59 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for shift in shifts %}
+                        {% for block in blocks %}
                             <tr>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary border-0" type="button" data-bs-toggle="collapse" data-bs-target="#shift-{{ shift.id }}" aria-expanded="false">
+                                    <button class="btn btn-sm btn-outline-secondary border-0" type="button" data-bs-toggle="collapse" data-bs-target="#block-{{ block.id }}" aria-expanded="false">
                                         <i class="bi bi-caret-down"></i>
                                     </button>
-                                    {{ shift.date|date:"d M Y" }}
+                                    {{ block.date|date:"d M Y" }}
                                 </td>
                                 <td>
-                                    {% if shift.day_type == 'Weekday' %}
-                                        <span class="badge bg-success">{{ shift.day_type }}</span>
-                                    {% elif shift.day_type == 'Saturday' %}
-                                        <span class="badge bg-warning">{{ shift.day_type }}</span>
-                                    {% elif shift.day_type == 'Sunday' %}
-                                        <span class="badge bg-danger">{{ shift.day_type }}</span>
+                                    {% if block.day_type == 'Weekday' %}
+                                        <span class="badge bg-success">{{ block.day_type }}</span>
+                                    {% elif block.day_type == 'Saturday' %}
+                                        <span class="badge bg-warning">{{ block.day_type }}</span>
+                                    {% elif block.day_type == 'Sunday' %}
+                                        <span class="badge bg-danger">{{ block.day_type }}</span>
                                     {% else %}
-                                        <span class="badge bg-info">{{ shift.day_type }}</span>
+                                        <span class="badge bg-info">{{ block.day_type }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if shift.time_entries.all %}
-                                        {% with first_entry=shift.time_entries.first last_entry=shift.time_entries.last %}
+                                    {% if block.time_entries.all %}
+                                        {% with first_entry=block.time_entries.first last_entry=block.time_entries.last %}
                                             <span class="text-muted small">{{ first_entry.time_started|time:"H:i" }} - {{ last_entry.time_ended|time:"H:i" }}</span>
                                         {% endwith %}
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ shift.time_entries.count }}</td>
-                                <td>{{ shift.calculated_hours|floatformat:2 }}</td>
-                                <td>{{ shift.calculated_claims|floatformat:2 }}</td>
+                                <td>{{ block.time_entries.count }}</td>
+                                <td>{{ block.calculated_hours|floatformat:2 }}</td>
+                                <td>{{ block.calculated_claims|floatformat:2 }}</td>
                                 {% if not is_admin_view %}
                                     <td class="text-end">
-                                        <div class="btn-group shift-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
-                                            <a href="{% url 'add_time_entry' shift.id %}" class="btn btn-sm btn-outline-success border-0" 
-                                               data-bs-toggle="tooltip" title="Add time entry to this shift">
+                                        <div class="btn-group block-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
+                                            <a href="{% url 'add_time_entry' block.id %}" class="btn btn-sm btn-outline-success border-0" 
+                                               data-bs-toggle="tooltip" title="Add time entry to this block">
                                                 <i class="bi bi-plus-circle"></i>
                                             </a>
-                                            <a href="{% url 'edit_shift' shift.id %}" class="btn btn-sm btn-outline-primary border-0"
-                                               data-bs-toggle="tooltip" title="Edit shift date and day type">
+                                            <a href="{% url 'edit_block' block.id %}" class="btn btn-sm btn-outline-primary border-0"
+                                               data-bs-toggle="tooltip" title="Edit block date and day type">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="{% url 'delete_shift' shift.id %}" class="btn btn-sm btn-outline-danger border-0"
-                                               data-bs-toggle="tooltip" title="Delete shift and all time entries">
+                                            <a href="{% url 'delete_block' block.id %}" class="btn btn-sm btn-outline-danger border-0"
+                                               data-bs-toggle="tooltip" title="Delete block and all time entries">
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                         </div>
                                     </td>
                                 {% endif %}
                             </tr>
-                            <tr class="collapse" id="shift-{{ shift.id }}">
+                            <tr class="collapse" id="block-{{ block.id }}">
                                 <td colspan="{% if is_admin_view %}6{% else %}7{% endif %}" class="p-0">
-                                    {% if shift.time_entries.all %}
+                                    {% if block.time_entries.all %}
                                         <div class="table-responsive" style="margin-left: 3rem; padding-left:1rem; border-left: 1px solid #dee2e6;">
                                             <table class="table table-sm mb-0">
                                                 <thead class="table-light">
@@ -103,7 +103,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {% for entry in shift.time_entries.all %}
+                                                    {% for entry in block.time_entries.all %}
                                                         <tr>
                                                             <td>{{ entry.time_started|time:"H:i" }}</td>
                                                             <td>{{ entry.time_ended|time:"H:i" }}</td>
@@ -149,9 +149,9 @@
                                         <div class="p-3 text-center text-muted" style="margin-left: 2rem; border-left: 1px solid #dee2e6; background-color: #f8f9fa;">
                                             <i class="bi bi-clock-history"></i>
                                             {% if is_admin_view %}
-                                                No time entries for this shift.
+                                                No time entries for this block.
                                             {% else %}
-                                                No time entries yet. <a href="{% url 'add_time_entry' shift.id %}" class="btn btn-sm btn-success ms-2"><i class="bi bi-plus"></i> Add First Entry</a>
+                                                No time entries yet. <a href="{% url 'add_time_entry' block.id %}" class="btn btn-sm btn-success ms-2"><i class="bi bi-plus"></i> Add First Entry</a>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -165,13 +165,13 @@
             <div class="text-center py-4">
                 <i class="bi bi-calendar-x" style="font-size: 3rem; color: #ccc;"></i>
                 {% if is_admin_view %}
-                    <h5 class="mt-3 text-muted">No shifts recorded for this month</h5>
-                    <p class="text-muted">{{ staff.user.get_full_name|default:staff.user.username }} has not recorded any shifts for {{ current_month }}</p>
+                    <h5 class="mt-3 text-muted">No blocks recorded for this month</h5>
+                    <p class="text-muted">{{ staff.user.get_full_name|default:staff.user.username }} has not recorded any blocks for {{ current_month }}</p>
                 {% else %}
-                    <h5 class="mt-3 text-muted">No shifts recorded for this month</h5>
-                    <p class="text-muted">Start by adding your first shift</p>
-                    <a href="{% url 'add_shift' %}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add Your First Shift
+                    <h5 class="mt-3 text-muted">No blocks recorded for this month</h5>
+                    <p class="text-muted">Start by adding your first block</p>
+                    <a href="{% url 'add_block' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Your First Block
                     </a>
                 {% endif %}
             </div>

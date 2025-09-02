@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
 from datetime import datetime, date
-from .models import OnCallStaff, Shift, TimeEntry, WorkMode, Task, Detail
-from .forms import ShiftForm, TimeEntryForm
+from .models import OnCallStaff, Block, TimeEntry, WorkMode, Task, Detail
+from .forms import BlockForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission
 from .utils.date_helpers import get_month_date_range, build_month_context, get_safe_month_year_from_request
 
@@ -17,7 +17,7 @@ def get_dashboard_url_with_date(date_obj):
 
 @require_oncall_staff
 def dashboard(request):
-    """Dashboard showing user's shifts for selected month"""
+    """Dashboard showing user's blocks for selected month"""
     staff = request.staff
     
     # Get month/year from GET parameters with validation
@@ -26,25 +26,25 @@ def dashboard(request):
     # Calculate date range for selected month
     current_month_start, next_month_start = get_month_date_range(year, month)
     
-    shifts = Shift.objects.filter(
+    blocks = Block.objects.filter(
         staff=staff,
         date__gte=current_month_start,
         date__lt=next_month_start
     ).prefetch_related('time_entries__task', 'time_entries__work_mode').order_by('-date')
     
-    # Add calculated totals to each shift
-    for shift in shifts:
-        shift.calculated_hours = sum(entry.hours for entry in shift.time_entries.all())
-        shift.calculated_claims = sum(entry.claim for entry in shift.time_entries.all())
+    # Add calculated totals to each block
+    for block in blocks:
+        block.calculated_hours = sum(entry.hours for entry in block.time_entries.all())
+        block.calculated_claims = sum(entry.claim for entry in block.time_entries.all())
     
     # Calculate totals
     total_hours = sum(
-        sum(entry.hours for entry in shift.time_entries.all()) 
-        for shift in shifts
+        sum(entry.hours for entry in block.time_entries.all()) 
+        for block in blocks
     )
     total_claims = sum(
-        sum(entry.claim for entry in shift.time_entries.all()) 
-        for shift in shifts
+        sum(entry.claim for entry in block.time_entries.all()) 
+        for block in blocks
     )
     
     # Build month context using utility function
@@ -53,7 +53,7 @@ def dashboard(request):
     # Combine with view-specific context
     context = {
         'staff': staff,
-        'shifts': shifts,
+        'blocks': blocks,
         'total_hours': total_hours,
         'total_claims': total_claims,
         **month_context,  # Merge month navigation context
@@ -62,46 +62,46 @@ def dashboard(request):
 
 
 @require_oncall_staff
-def add_shift(request):
-    """Add a new shift"""
+def add_block(request):
+    """Add a new block"""
     staff = request.staff
     
     if request.method == 'POST':
-        form = ShiftForm(request.POST)
+        form = BlockForm(request.POST)
         if form.is_valid():
-            shift = form.save(commit=False)
-            shift.staff = staff
-            shift.save()
-            messages.success(request, 'Shift created successfully!')
-            return redirect(get_dashboard_url_with_date(shift.date))
+            block = form.save(commit=False)
+            block.staff = staff
+            block.save()
+            messages.success(request, 'Block created successfully!')
+            return redirect(get_dashboard_url_with_date(block.date))
     else:
-        form = ShiftForm()
+        form = BlockForm()
     
-    return render(request, 'records/add_shift.html', {'form': form})
+    return render(request, 'records/add_block.html', {'form': form})
 
 
 
 
 @require_oncall_staff
-def add_time_entry(request, shift_id):
-    """Add a time entry to a shift"""
+def add_time_entry(request, block_id):
+    """Add a time entry to a block"""
     staff = request.staff
-    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
+    block = get_object_or_404(Block, id=block_id, staff=staff)
     
     if request.method == 'POST':
         form = TimeEntryForm(request.POST)
         if form.is_valid():
             time_entry = form.save(commit=False)
-            time_entry.shift = shift
+            time_entry.block = block
             time_entry.save()
             messages.success(request, 'Time entry added successfully!')
-            return redirect(get_dashboard_url_with_date(shift.date))
+            return redirect(get_dashboard_url_with_date(block.date))
     else:
         form = TimeEntryForm()
     
     context = {
         'form': form,
-        'shift': shift,
+        'block': block,
     }
     return render(request, 'records/add_time_entry.html', context)
 
@@ -110,14 +110,14 @@ def add_time_entry(request, shift_id):
 def edit_time_entry(request, entry_id):
     """Edit a time entry"""
     staff = request.staff
-    time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
+    time_entry = get_object_or_404(TimeEntry, id=entry_id, block__staff=staff)
     
     if request.method == 'POST':
         form = TimeEntryForm(request.POST, instance=time_entry)
         if form.is_valid():
             form.save()
             messages.success(request, 'Time entry updated successfully!')
-            return redirect(get_dashboard_url_with_date(time_entry.shift.date))
+            return redirect(get_dashboard_url_with_date(time_entry.block.date))
     else:
         form = TimeEntryForm(instance=time_entry)
         # Pre-populate detail_text if entry has detail
@@ -127,7 +127,7 @@ def edit_time_entry(request, entry_id):
     context = {
         'form': form,
         'time_entry': time_entry,
-        'shift': time_entry.shift,
+        'block': time_entry.block,
     }
     return render(request, 'records/edit_time_entry.html', context)
 
@@ -136,56 +136,56 @@ def edit_time_entry(request, entry_id):
 def delete_time_entry(request, entry_id):
     """Delete a time entry"""
     staff = request.staff
-    time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
+    time_entry = get_object_or_404(TimeEntry, id=entry_id, block__staff=staff)
     
     if request.method == 'POST':
-        shift_date = time_entry.shift.date
+        block_date = time_entry.block.date
         time_entry.delete()
         messages.success(request, 'Time entry deleted successfully!')
-        return redirect(get_dashboard_url_with_date(shift_date))
+        return redirect(get_dashboard_url_with_date(block_date))
     
     return render(request, 'records/confirm_delete_time_entry.html', {
         'time_entry': time_entry,
-        'shift': time_entry.shift,
+        'block': time_entry.block,
     })
 
 
 @require_oncall_staff
-def edit_shift(request, shift_id):
-    """Edit a shift"""
+def edit_block(request, block_id):
+    """Edit a block"""
     staff = request.staff
-    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
+    block = get_object_or_404(Block, id=block_id, staff=staff)
     
     if request.method == 'POST':
-        form = ShiftForm(request.POST, instance=shift)
+        form = BlockForm(request.POST, instance=block)
         if form.is_valid():
-            updated_shift = form.save()
-            messages.success(request, 'Shift updated successfully!')
-            return redirect(get_dashboard_url_with_date(updated_shift.date))
+            updated_block = form.save()
+            messages.success(request, 'Block updated successfully!')
+            return redirect(get_dashboard_url_with_date(updated_block.date))
     else:
-        form = ShiftForm(instance=shift)
+        form = BlockForm(instance=block)
     
-    return render(request, 'records/edit_shift.html', {
+    return render(request, 'records/edit_block.html', {
         'form': form,
-        'shift': shift,
+        'block': block,
     })
 
 
 @require_oncall_staff
-def delete_shift(request, shift_id):
-    """Delete a shift and all its time entries"""
+def delete_block(request, block_id):
+    """Delete a block and all its time entries"""
     staff = request.staff
-    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
+    block = get_object_or_404(Block, id=block_id, staff=staff)
     
     if request.method == 'POST':
-        shift_date = shift.date
-        shift.delete()
-        messages.success(request, 'Shift and all time entries deleted successfully!')
-        return redirect(get_dashboard_url_with_date(shift_date))
+        block_date = block.date
+        block.delete()
+        messages.success(request, 'Block and all time entries deleted successfully!')
+        return redirect(get_dashboard_url_with_date(block_date))
     
-    return render(request, 'records/confirm_delete_shift.html', {
-        'shift': shift,
-        'entry_count': shift.time_entries.count(),
+    return render(request, 'records/confirm_delete_block.html', {
+        'block': block,
+        'entry_count': block.time_entries.count(),
     })
 
 
@@ -199,16 +199,16 @@ def monthly_report(request):
     # Calculate date range
     report_date, next_month_start = get_month_date_range(year, month)
     
-    # Get all staff and their shifts for the month
+    # Get all staff and their blocks for the month
     staff_reports = []
     for staff in OnCallStaff.objects.all().select_related('user'):
-        shifts = Shift.objects.filter(
+        blocks = Block.objects.filter(
             staff=staff,
             date__gte=report_date,
             date__lt=next_month_start
         ).prefetch_related('time_entries__task', 'time_entries__work_mode')
         
-        if shifts.exists():
+        if blocks.exists():
             # Calculate totals by day type
             totals = {
                 'Weekday': {'hours': 0, 'claims': 0},
@@ -217,11 +217,11 @@ def monthly_report(request):
                 'BankHoliday': {'hours': 0, 'claims': 0},
             }
             
-            for shift in shifts:
-                shift_hours = sum(entry.hours for entry in shift.time_entries.all())
-                shift_claims = sum(entry.claim for entry in shift.time_entries.all())
-                totals[shift.day_type]['hours'] += shift_hours
-                totals[shift.day_type]['claims'] += shift_claims
+            for block in blocks:
+                block_hours = sum(entry.hours for entry in block.time_entries.all())
+                block_claims = sum(entry.claim for entry in block.time_entries.all())
+                totals[block.day_type]['hours'] += block_hours
+                totals[block.day_type]['claims'] += block_claims
             
             # Calculate grand totals
             total_hours = sum(t['hours'] for t in totals.values())
@@ -229,18 +229,18 @@ def monthly_report(request):
             
             staff_reports.append({
                 'staff': staff,
-                'shifts': shifts,
+                'blocks': blocks,
                 'totals': totals,
                 'total_hours': total_hours,
                 'total_claims': total_claims,
             })
     
     # Generate available months for dropdown
-    first_shift = Shift.objects.order_by('date').first()
+    first_block = Block.objects.order_by('date').first()
     available_months = []
-    if first_shift:
+    if first_block:
         today = timezone.now().date()
-        current_date = first_shift.date.replace(day=1)
+        current_date = first_block.date.replace(day=1)
         while current_date <= today:
             available_months.append(current_date)
             if current_date.month == 12:
@@ -273,16 +273,16 @@ def export_monthly_csv(request):
     # Calculate date range for selected month
     report_date, next_month_start = get_month_date_range(year, month)
     
-    # Get all staff and their shifts for the month
+    # Get all staff and their blocks for the month
     staff_reports = []
     for staff in OnCallStaff.objects.all().select_related('user'):
-        shifts = Shift.objects.filter(
+        blocks = Block.objects.filter(
             staff=staff,
             date__gte=report_date,
             date__lt=next_month_start
         ).prefetch_related('time_entries__task', 'time_entries__work_mode')
         
-        if shifts.exists():
+        if blocks.exists():
             # Calculate totals by day type
             totals = {
                 'Weekday': {'claims': 0},
@@ -291,9 +291,9 @@ def export_monthly_csv(request):
                 'BankHoliday': {'claims': 0},
             }
             
-            for shift in shifts:
-                shift_claims = sum(entry.claim for entry in shift.time_entries.all())
-                totals[shift.day_type]['claims'] += shift_claims
+            for block in blocks:
+                block_claims = sum(entry.claim for entry in block.time_entries.all())
+                totals[block.day_type]['claims'] += block_claims
             
             total_claims = sum(t['claims'] for t in totals.values())
             
@@ -357,25 +357,25 @@ def admin_user_dashboard(request, user_id):
     # Calculate date range for selected month
     current_month_start, next_month_start = get_month_date_range(year, month)
     
-    shifts = Shift.objects.filter(
+    blocks = Block.objects.filter(
         staff=staff,
         date__gte=current_month_start,
         date__lt=next_month_start
     ).prefetch_related('time_entries__task', 'time_entries__work_mode').order_by('-date')
     
-    # Add calculated totals to each shift
-    for shift in shifts:
-        shift.calculated_hours = sum(entry.hours for entry in shift.time_entries.all())
-        shift.calculated_claims = sum(entry.claim for entry in shift.time_entries.all())
+    # Add calculated totals to each block
+    for block in blocks:
+        block.calculated_hours = sum(entry.hours for entry in block.time_entries.all())
+        block.calculated_claims = sum(entry.claim for entry in block.time_entries.all())
     
     # Calculate totals
     total_hours = sum(
-        sum(entry.hours for entry in shift.time_entries.all()) 
-        for shift in shifts
+        sum(entry.hours for entry in block.time_entries.all()) 
+        for block in blocks
     )
     total_claims = sum(
-        sum(entry.claim for entry in shift.time_entries.all()) 
-        for shift in shifts
+        sum(entry.claim for entry in block.time_entries.all()) 
+        for block in blocks
     )
     
     # Build month context using utility function
@@ -383,7 +383,7 @@ def admin_user_dashboard(request, user_id):
     
     context = {
         'staff': staff,
-        'shifts': shifts,
+        'blocks': blocks,
         'total_hours': total_hours,
         'total_claims': total_claims,
         'is_admin_view': True,

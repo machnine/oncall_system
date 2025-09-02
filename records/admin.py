@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, Task, Detail, Shift, TimeEntry
+from .models import OnCallStaff, WorkMode, Task, Detail, Block, TimeEntry
 
 
 @admin.register(OnCallStaff)
@@ -49,8 +49,8 @@ class TimeEntryInline(admin.TabularInline):
     get_hours.short_description = 'Hours'
 
 
-@admin.register(Shift)
-class ShiftAdmin(admin.ModelAdmin):
+@admin.register(Block)
+class BlockAdmin(admin.ModelAdmin):
     list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_total_claims')
     list_filter = ('day_type', 'date', 'staff')
     search_fields = ('staff__assignment_id', 'staff__user__username')
@@ -68,10 +68,10 @@ class ShiftAdmin(admin.ModelAdmin):
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
-    list_display = ('shift', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours', 'claim')
-    list_filter = ('work_mode', 'task', 'shift__day_type', 'shift__date')
-    search_fields = ('shift__staff__assignment_id', 'task__name', 'work_mode__name')
-    date_hierarchy = 'shift__date'
+    list_display = ('block', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours', 'claim')
+    list_filter = ('work_mode', 'task', 'block__day_type', 'block__date')
+    search_fields = ('block__staff__assignment_id', 'task__name', 'work_mode__name')
+    date_hierarchy = 'block__date'
     readonly_fields = ('get_hours',)
     
     def get_hours(self, obj):
