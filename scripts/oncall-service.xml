@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service>
+  <!-- Service Identity -->
+  <id>OnCallSystem</id>
+  <name>OnCall System</name>
+  <description>OnCall System - Django Web Application for managing on-call staff records and schedules</description>
+  
+  <!-- Executable Configuration -->
+  <executable>uv</executable>
+  <arguments>run gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 4 --timeout 120 --keepalive 2</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  
+  <!-- Service Startup -->
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  
+  <!-- Security Context -->
+  <serviceaccount>
+    <!-- Run as Local System by default, change if needed -->
+    <!-- <username>DOMAIN\ServiceUser</username> -->
+    <!-- <password>ServicePassword</password> -->
+    <!-- <allowservicelogon>true</allowservicelogon> -->
+  </serviceaccount>
+  
+  <!-- Process Management -->
+  <stoptimeout>15 sec</stoptimeout>
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+  
+  <!-- Environment Variables -->
+  <env name="DJANGO_SETTINGS_MODULE" value="config.settings.prod"/>
+  <env name="PYTHONUNBUFFERED" value="1"/>
+  <env name="DJANGO_LOG_LEVEL" value="INFO"/>
+  
+  <!-- Logging Configuration -->
+  <log mode="roll-by-time">
+    <pattern>yyyy-MM-dd</pattern>
+  </log>
+  <logpath>%BASE%\logs</logpath>
+  
+  <!-- Restart Policy -->
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="20 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <onfailure action="none"/>
+  
+  <resetfailure>1 hour</resetfailure>
+  
+  <!-- Process Priority -->
+  <priority>Normal</priority>
+  
+  <!-- Dependencies -->
+  <!-- Uncomment if you need database services to start first -->
+  <!-- <depend>MSSQLSERVER</depend> -->
+  <!-- <depend>PostgreSQL</depend> -->
+  
+  <!-- Extensions for advanced features -->
+  <extensions>
+    <!-- Run pre/post scripts if needed -->
+    <!-- <extension enabled="true" className="winsw.Plugins.RunawayProcessKiller.RunawayProcessKillerExtension" id="killOnStartup">
+      <pidfile>%BASE%\app.pid</pidfile>
+      <stopTimeout>5000</stopTimeout>
+      <stopParentProcessFirst>false</stopParentProcessFirst>
+    </extension> -->
+  </extensions>
+  
+</service>
