@@ -5,7 +5,7 @@
 {% block entry_header %}<i class="bi bi-plus-circle"></i> Add Time Entry - {{ shift.date|date:"d/m/Y" }} ({{ shift.day_type }}){% endblock entry_header %}
 
 {% block back_button %}
-<a href="{% url 'shift_detail' shift.id %}" class="btn btn-secondary me-md-2">
+<a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
     <i class="bi bi-arrow-left"></i> Back
 </a>
 {% endblock back_button %}

@@ -22,7 +22,7 @@
                     {% if user.is_authenticated %}
                         <a class="nav-link"
                            href="{% url 'dashboard' %}"
-                           title="Monthly Records"
+                           title="Records"
                            data-bs-toggle="tooltip"
                            data-bs-placement="bottom">
                             <i class="bi-calendar3"></i>
@@ -30,7 +30,7 @@
                         {% if user.is_staff %}
                             <a class="nav-link"
                                href="{% url 'monthly_report' %}"
-                               title="Monthly Reports"
+                               title="Reports"
                                data-bs-toggle="tooltip"
                                data-bs-placement="bottom">
                                 <i class="bi bi-file-earmark-spreadsheet"></i>

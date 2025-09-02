@@ -6,6 +6,8 @@ from django.urls import reverse
 from datetime import datetime, date
 from .models import OnCallStaff, Shift, TimeEntry, WorkMode, Task, Detail
 from .forms import ShiftForm, TimeEntryForm
+from .utils.decorators import require_oncall_staff, require_staff_permission
+from .utils.date_helpers import get_month_date_range, build_month_context, get_safe_month_year_from_request
 
 
 def get_dashboard_url_with_date(date_obj):
@@ -13,36 +15,16 @@ def get_dashboard_url_with_date(date_obj):
     return f"{reverse('dashboard')}?month={date_obj.month}&year={date_obj.year}"
 
 
-@login_required
+@require_oncall_staff
 def dashboard(request):
     """Dashboard showing user's shifts for selected month"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
     
-    # Get month/year from GET parameters, default to current month
-    today = timezone.now().date()
-    month = int(request.GET.get('month', today.month))
-    year = int(request.GET.get('year', today.year))
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
     
     # Calculate date range for selected month
-    try:
-        current_month_start = date(year, month, 1)
-        if month == 12:
-            next_month_start = date(year + 1, 1, 1)
-        else:
-            next_month_start = date(year, month + 1, 1)
-    except ValueError:
-        # Invalid month/year, default to current month
-        current_month_start = today.replace(day=1)
-        if today.month == 12:
-            next_month_start = today.replace(year=today.year + 1, month=1, day=1)
-        else:
-            next_month_start = today.replace(month=today.month + 1, day=1)
-        month = today.month
-        year = today.year
+    current_month_start, next_month_start = get_month_date_range(year, month)
     
     shifts = Shift.objects.filter(
         staff=staff,
@@ -65,52 +47,24 @@ def dashboard(request):
         for shift in shifts
     )
     
-    # Calculate previous/next month for navigation
-    if month == 1:
-        prev_month, prev_year = 12, year - 1
-    else:
-        prev_month, prev_year = month - 1, year
-        
-    if month == 12:
-        next_month, next_year = 1, year + 1
-    else:
-        next_month, next_year = month + 1, year
+    # Build month context using utility function
+    month_context = build_month_context(month, year)
     
-    # Generate available years based on actual shift data
-    available_years = []
-    shift_years = Shift.objects.dates('date', 'year')
-    if shift_years:
-        available_years = [d.year for d in shift_years]
-    else:
-        # If no shifts exist yet, at least show current year
-        available_years = [today.year]
-    
+    # Combine with view-specific context
     context = {
         'staff': staff,
         'shifts': shifts,
         'total_hours': total_hours,
         'total_claims': total_claims,
-        'current_month': current_month_start.strftime('%B %Y'),
-        'current_month_num': month,
-        'current_year': year,
-        'prev_month': prev_month,
-        'prev_year': prev_year,
-        'next_month': next_month,
-        'next_year': next_year,
-        'is_current_month': (month == today.month and year == today.year),
-        'available_years': available_years,
+        **month_context,  # Merge month navigation context
     }
     return render(request, 'records/dashboard.html', context)
 
 
-@login_required
+@require_oncall_staff
 def add_shift(request):
     """Add a new shift"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
     
     if request.method == 'POST':
         form = ShiftForm(request.POST)
@@ -126,38 +80,13 @@ def add_shift(request):
     return render(request, 'records/add_shift.html', {'form': form})
 
 
-@login_required
-def shift_detail(request, shift_id):
-    """View and manage time entries for a specific shift"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        shift = get_object_or_404(Shift, id=shift_id, staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
-    
-    time_entries = shift.time_entries.all().order_by('time_started')
-    total_hours = sum(entry.hours for entry in time_entries)
-    total_claims = sum(entry.claim for entry in time_entries)
-    
-    context = {
-        'shift': shift,
-        'time_entries': time_entries,
-        'total_hours': total_hours,
-        'total_claims': total_claims,
-    }
-    return render(request, 'records/shift_detail.html', context)
 
 
-@login_required
+@require_oncall_staff
 def add_time_entry(request, shift_id):
     """Add a time entry to a shift"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        shift = get_object_or_404(Shift, id=shift_id, staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
+    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
     
     if request.method == 'POST':
         form = TimeEntryForm(request.POST)
@@ -166,7 +95,7 @@ def add_time_entry(request, shift_id):
             time_entry.shift = shift
             time_entry.save()
             messages.success(request, 'Time entry added successfully!')
-            return redirect('shift_detail', shift_id=shift.id)
+            return redirect(get_dashboard_url_with_date(shift.date))
     else:
         form = TimeEntryForm()
     
@@ -177,15 +106,11 @@ def add_time_entry(request, shift_id):
     return render(request, 'records/add_time_entry.html', context)
 
 
-@login_required
+@require_oncall_staff
 def edit_time_entry(request, entry_id):
     """Edit a time entry"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
+    time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
     
     if request.method == 'POST':
         form = TimeEntryForm(request.POST, instance=time_entry)
@@ -207,15 +132,11 @@ def edit_time_entry(request, entry_id):
     return render(request, 'records/edit_time_entry.html', context)
 
 
-@login_required
+@require_oncall_staff
 def delete_time_entry(request, entry_id):
     """Delete a time entry"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
+    time_entry = get_object_or_404(TimeEntry, id=entry_id, shift__staff=staff)
     
     if request.method == 'POST':
         shift_date = time_entry.shift.date
@@ -229,15 +150,11 @@ def delete_time_entry(request, entry_id):
     })
 
 
-@login_required
+@require_oncall_staff
 def edit_shift(request, shift_id):
     """Edit a shift"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        shift = get_object_or_404(Shift, id=shift_id, staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
+    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
     
     if request.method == 'POST':
         form = ShiftForm(request.POST, instance=shift)
@@ -254,15 +171,11 @@ def edit_shift(request, shift_id):
     })
 
 
-@login_required
+@require_oncall_staff
 def delete_shift(request, shift_id):
     """Delete a shift and all its time entries"""
-    try:
-        staff = OnCallStaff.objects.get(user=request.user)
-        shift = get_object_or_404(Shift, id=shift_id, staff=staff)
-    except OnCallStaff.DoesNotExist:
-        messages.error(request, 'You are not registered as on-call staff.')
-        return redirect('admin:index')
+    staff = request.staff
+    shift = get_object_or_404(Shift, id=shift_id, staff=staff)
     
     if request.method == 'POST':
         shift_date = shift.date
@@ -276,24 +189,15 @@ def delete_shift(request, shift_id):
     })
 
 
-@login_required
+@require_staff_permission
 def monthly_report(request):
     """Generate month-end claim report for all staff"""
-    if not request.user.is_staff:
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('dashboard')
     
-    # Get month/year from GET parameters, default to current month
-    today = timezone.now().date()
-    month = int(request.GET.get('month', today.month))
-    year = int(request.GET.get('year', today.year))
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
     
     # Calculate date range
-    report_date = date(year, month, 1)
-    if month == 12:
-        next_month_start = date(year + 1, 1, 1)
-    else:
-        next_month_start = date(year, month + 1, 1)
+    report_date, next_month_start = get_month_date_range(year, month)
     
     # Get all staff and their shifts for the month
     staff_reports = []
@@ -335,6 +239,7 @@ def monthly_report(request):
     first_shift = Shift.objects.order_by('date').first()
     available_months = []
     if first_shift:
+        today = timezone.now().date()
         current_date = first_shift.date.replace(day=1)
         while current_date <= today:
             available_months.append(current_date)
@@ -343,71 +248,30 @@ def monthly_report(request):
             else:
                 current_date = current_date.replace(month=current_date.month + 1)
     
-    # Calculate previous/next month for navigation
-    if month == 1:
-        prev_month, prev_year = 12, year - 1
-    else:
-        prev_month, prev_year = month - 1, year
-        
-    if month == 12:
-        next_month, next_year = 1, year + 1
-    else:
-        next_month, next_year = month + 1, year
-    
-    # Generate available years based on actual shift data
-    available_years = []
-    shift_years = Shift.objects.dates('date', 'year')
-    if shift_years:
-        available_years = [d.year for d in shift_years]
-    else:
-        # If no shifts exist yet, at least show current year
-        available_years = [today.year]
+    # Build month context using utility function
+    month_context = build_month_context(month, year)
     
     context = {
         'staff_reports': staff_reports,
         'report_month': report_date,
         'available_months': available_months,
-        'current_month': report_date.strftime('%B %Y'),
-        'current_month_num': month,
-        'current_year': year,
-        'prev_month': prev_month,
-        'prev_year': prev_year,
-        'next_month': next_month,
-        'next_year': next_year,
-        'available_years': available_years,
+        **month_context,  # Merge month navigation context
     }
     return render(request, 'records/monthly_report.html', context)
 
 
-@login_required
+@require_staff_permission
 def export_monthly_csv(request):
     """Export monthly report as CSV"""
-    if not request.user.is_staff:
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('dashboard')
     
     import csv
     from django.http import HttpResponse
     
-    # Get month/year from GET parameters, default to current month
-    today = timezone.now().date()
-    month = int(request.GET.get('month', today.month))
-    year = int(request.GET.get('year', today.year))
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
     
     # Calculate date range for selected month
-    try:
-        report_date = date(year, month, 1)
-        if month == 12:
-            next_month_start = date(year + 1, 1, 1)
-        else:
-            next_month_start = date(year, month + 1, 1)
-    except ValueError:
-        # Invalid month/year, default to current month
-        report_date = today.replace(day=1)
-        if today.month == 12:
-            next_month_start = today.replace(year=today.year + 1, month=1, day=1)
-        else:
-            next_month_start = today.replace(month=today.month + 1, day=1)
+    report_date, next_month_start = get_month_date_range(year, month)
     
     # Get all staff and their shifts for the month
     staff_reports = []
@@ -481,36 +345,17 @@ def export_monthly_csv(request):
     return response
 
 
-@login_required
+@require_staff_permission
 def admin_user_dashboard(request, user_id):
     """Admin view to see a specific user's dashboard"""
-    if not request.user.is_staff:
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('dashboard')
     
     staff = get_object_or_404(OnCallStaff, user_id=user_id)
     
-    # Get month/year from GET parameters, default to current month
-    today = timezone.now().date()
-    month = int(request.GET.get('month', today.month))
-    year = int(request.GET.get('year', today.year))
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
     
     # Calculate date range for selected month
-    try:
-        current_month_start = date(year, month, 1)
-        if month == 12:
-            next_month_start = date(year + 1, 1, 1)
-        else:
-            next_month_start = date(year, month + 1, 1)
-    except ValueError:
-        # Invalid month/year, default to current month
-        current_month_start = today.replace(day=1)
-        if today.month == 12:
-            next_month_start = today.replace(year=today.year + 1, month=1, day=1)
-        else:
-            next_month_start = today.replace(month=today.month + 1, day=1)
-        month = today.month
-        year = today.year
+    current_month_start, next_month_start = get_month_date_range(year, month)
     
     shifts = Shift.objects.filter(
         staff=staff,
@@ -533,30 +378,15 @@ def admin_user_dashboard(request, user_id):
         for shift in shifts
     )
     
-    # Calculate previous/next month for navigation
-    if month == 1:
-        prev_month, prev_year = 12, year - 1
-    else:
-        prev_month, prev_year = month - 1, year
-        
-    if month == 12:
-        next_month, next_year = 1, year + 1
-    else:
-        next_month, next_year = month + 1, year
+    # Build month context using utility function
+    month_context = build_month_context(month, year)
     
     context = {
         'staff': staff,
         'shifts': shifts,
         'total_hours': total_hours,
         'total_claims': total_claims,
-        'current_month': current_month_start.strftime('%B %Y'),
-        'current_month_num': month,
-        'current_year': year,
-        'prev_month': prev_month,
-        'prev_year': prev_year,
-        'next_month': next_month,
-        'next_year': next_year,
-        'is_current_month': (month == today.month and year == today.year),
         'is_admin_view': True,
+        **month_context,  # Merge month navigation context
     }
     return render(request, 'records/admin_user_dashboard.html', context)

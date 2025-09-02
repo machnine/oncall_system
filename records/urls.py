@@ -4,7 +4,6 @@ from . import views
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('shift/add/', views.add_shift, name='add_shift'),
-    path('shift/<int:shift_id>/', views.shift_detail, name='shift_detail'),
     path('shift/<int:shift_id>/edit/', views.edit_shift, name='edit_shift'),
     path('shift/<int:shift_id>/delete/', views.delete_shift, name='delete_shift'),
     path('shift/<int:shift_id>/add-entry/', views.add_time_entry, name='add_time_entry'),

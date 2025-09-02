@@ -1,0 +1,41 @@
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card" style="background-color: rgba(13, 202, 240, 0.1);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Shifts</h6>
+                        <h4>{{ shifts.count }}</h4>
+                    </div>
+                    <i class="bi bi-calendar-event text-info" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card" style="background-color: rgba(25, 135, 84, 0.1);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Worked Hours</h6>
+                        <h4>{{ total_hours|floatformat:2 }}</h4>
+                    </div>
+                    <i class="bi bi-hourglass-split text-success" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card" style="background-color: rgba(255, 193, 7, 0.1);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Claim Hours</h6>
+                        <h4>{{ total_claims|floatformat:2 }}</h4>
+                    </div>
+                    <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

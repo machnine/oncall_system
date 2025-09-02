@@ -1,0 +1,100 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    {% if not is_admin_view %}
+        // Show/hide action buttons on row hover (only for non-admin views)
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            // Skip collapsed detail rows
+            if (row.classList.contains('collapse')) return;
+            
+            row.addEventListener('mouseenter', function() {
+                const actions = this.querySelector('.shift-actions, .entry-actions');
+                if (actions) {
+                    actions.style.opacity = '1';
+                }
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                const actions = this.querySelector('.shift-actions, .entry-actions');
+                if (actions) {
+                    actions.style.opacity = '0';
+                }
+            });
+        });
+
+        // Handle hover for nested time entry rows
+        document.querySelectorAll('.collapse tbody tr').forEach(function(row) {
+            row.addEventListener('mouseenter', function() {
+                const actions = this.querySelector('.entry-actions');
+                if (actions) {
+                    actions.style.opacity = '1';
+                }
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                const actions = this.querySelector('.entry-actions');
+                if (actions) {
+                    actions.style.opacity = '0';
+                }
+            });
+        });
+    {% endif %}
+
+    // Handle chevron rotation on collapse toggle
+    var collapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]:not(#toggleAllShifts)');
+    collapseElements.forEach(function(element) {
+        var target = document.querySelector(element.getAttribute('data-bs-target'));
+        var chevron = element.querySelector('i');
+        
+        target.addEventListener('show.bs.collapse', function () {
+            chevron.classList.remove('bi-caret-down');
+            chevron.classList.add('bi-caret-up');
+            element.setAttribute('aria-expanded', 'true');
+        });
+        
+        target.addEventListener('hide.bs.collapse', function () {
+            chevron.classList.remove('bi-caret-up');
+            chevron.classList.add('bi-caret-down');
+            element.setAttribute('aria-expanded', 'false');
+        });
+    });
+
+    // Handle toggle all shifts
+    var toggleAllBtn = document.getElementById('toggleAllShifts');
+    if (toggleAllBtn) {
+        var allExpanded = false; // Default state is collapsed
+        
+        toggleAllBtn.addEventListener('click', function() {
+            var shiftCollapses = document.querySelectorAll('[id^="shift-"]');
+            var toggleIcon = this.querySelector('i');
+            
+            if (allExpanded) {
+                // Collapse all
+                shiftCollapses.forEach(function(collapse) {
+                    var bsCollapse = new bootstrap.Collapse(collapse, {show: false});
+                    bsCollapse.hide();
+                });
+                toggleIcon.className = 'bi bi-caret-down-fill';
+                this.setAttribute('data-original-title', 'Expand all shifts');
+                this.setAttribute('title', 'Expand all shifts');
+                allExpanded = false;
+            } else {
+                // Expand all
+                shiftCollapses.forEach(function(collapse) {
+                    var bsCollapse = new bootstrap.Collapse(collapse, {show: true});
+                    bsCollapse.show();
+                });
+                toggleIcon.className = 'bi bi-caret-up-fill';
+                this.setAttribute('data-original-title', 'Collapse all shifts');
+                this.setAttribute('title', 'Collapse all shifts');
+                allExpanded = true;
+            }
+        });
+    }
+});
+</script>
