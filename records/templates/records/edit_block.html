@@ -19,15 +19,25 @@
                         {% if form.date.errors %}
                             <div class="text-danger">{{ form.date.errors }}</div>
                         {% endif %}
+                        <div class="form-text">The day type (weekday/weekend/bank holiday) is automatically determined based on the selected date.</div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="{{ form.day_type.id_for_label }}" class="form-label">Day Type</label>
-                        {{ form.day_type }}
-                        {% if form.day_type.errors %}
-                            <div class="text-danger">{{ form.day_type.errors }}</div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label for="{{ form.claim.id_for_label }}" class="form-label mb-0">Total Claim Hours</label>
+                            <div class="d-flex flex-wrap gap-2" role="group">
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.25)">15m</button>
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.5)">30m</button>
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(1)">1h</button>
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(2)">2h</button>
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(3)">3h</button>
+                            </div>
+                        </div>
+                        {{ form.claim }}
+                        {% if form.claim.errors %}
+                            <div class="text-danger">{{ form.claim.errors }}</div>
                         {% endif %}
-                        <div class="form-text">The day type is automatically detected based on the date, but you can override it.</div>
+                        <div class="form-text">Enter the total claim hours for this entire block (optional).</div>
                     </div>
 
                     <div class="alert alert-warning">
@@ -50,31 +60,13 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dateInput = document.getElementById('{{ form.date.id_for_label }}');
-    const dayTypeSelect = document.getElementById('{{ form.day_type.id_for_label }}');
-    
-    function updateDayType() {
-        if (dateInput.value) {
-            const selectedDate = new Date(dateInput.value);
-            const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-            
-            let dayType;
-            if (dayOfWeek === 0) { // Sunday
-                dayType = 'Sunday';
-            } else if (dayOfWeek === 6) { // Saturday
-                dayType = 'Saturday';
-            } else { // Monday - Friday
-                dayType = 'Weekday';
-            }
-            
-            // Set the day type select to the calculated value
-            dayTypeSelect.value = dayType;
-        }
+function setClaimHours(hours) {
+    const claimField = document.querySelector('input[name="claim"]');
+    if (claimField) {
+        claimField.value = hours;
+        claimField.focus();
     }
-    
-    // Update day type when date changes
-    dateInput.addEventListener('change', updateDayType);
-});
+}
 </script>
+
 {% endblock %}

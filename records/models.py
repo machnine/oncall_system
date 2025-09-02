@@ -44,6 +44,7 @@ class Block(models.Model):
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     date = models.DateField()
     day_type = models.CharField(max_length=20, choices=DAY_TYPES, default='Weekday')
+    claim = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Total claim hours for this block")
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
     
@@ -80,7 +81,6 @@ class TimeEntry(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     detail = models.ForeignKey(Detail, on_delete=models.SET_NULL, null=True, blank=True)
     work_mode = models.ForeignKey(WorkMode, on_delete=models.CASCADE)
-    claim = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
     

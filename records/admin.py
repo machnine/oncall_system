@@ -41,7 +41,7 @@ class DetailAdmin(admin.ModelAdmin):
 class TimeEntryInline(admin.TabularInline):
     model = TimeEntry
     extra = 0
-    fields = ('time_started', 'time_ended', 'task', 'work_mode', 'detail', 'claim', 'get_hours')
+    fields = ('time_started', 'time_ended', 'task', 'work_mode', 'detail', 'get_hours')
     readonly_fields = ('get_hours',)
     
     def get_hours(self, obj):
@@ -51,7 +51,7 @@ class TimeEntryInline(admin.TabularInline):
 
 @admin.register(Block)
 class BlockAdmin(admin.ModelAdmin):
-    list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_total_claims')
+    list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_block_claim')
     list_filter = ('day_type', 'date', 'staff')
     search_fields = ('staff__assignment_id', 'staff__user__username')
     date_hierarchy = 'date'
@@ -61,14 +61,14 @@ class BlockAdmin(admin.ModelAdmin):
         return sum(entry.hours for entry in obj.time_entries.all())
     get_total_hours.short_description = 'Total Hours'
     
-    def get_total_claims(self, obj):
-        return sum(entry.claim for entry in obj.time_entries.all())
-    get_total_claims.short_description = 'Total Claims'
+    def get_block_claim(self, obj):
+        return obj.claim if obj.claim else '-'
+    get_block_claim.short_description = 'Block Claim'
 
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
-    list_display = ('block', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours', 'claim')
+    list_display = ('block', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours')
     list_filter = ('work_mode', 'task', 'block__day_type', 'block__date')
     search_fields = ('block__staff__assignment_id', 'task__name', 'work_mode__name')
     date_hierarchy = 'block__date'

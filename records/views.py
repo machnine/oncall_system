@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.urls import reverse
 from datetime import datetime, date
 from .models import OnCallStaff, Block, TimeEntry, WorkMode, Task, Detail
-from .forms import BlockForm, TimeEntryForm
+from .forms import BlockForm, BlockEditForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission
 from .utils.date_helpers import get_month_date_range, build_month_context, get_safe_month_year_from_request
 
@@ -35,7 +35,6 @@ def dashboard(request):
     # Add calculated totals to each block
     for block in blocks:
         block.calculated_hours = sum(entry.hours for entry in block.time_entries.all())
-        block.calculated_claims = sum(entry.claim for entry in block.time_entries.all())
     
     # Calculate totals
     total_hours = sum(
@@ -43,8 +42,7 @@ def dashboard(request):
         for block in blocks
     )
     total_claims = sum(
-        sum(entry.claim for entry in block.time_entries.all()) 
-        for block in blocks
+        block.claim for block in blocks if block.claim
     )
     
     # Build month context using utility function
@@ -157,13 +155,13 @@ def edit_block(request, block_id):
     block = get_object_or_404(Block, id=block_id, staff=staff)
     
     if request.method == 'POST':
-        form = BlockForm(request.POST, instance=block)
+        form = BlockEditForm(request.POST, instance=block)
         if form.is_valid():
             updated_block = form.save()
             messages.success(request, 'Block updated successfully!')
             return redirect(get_dashboard_url_with_date(updated_block.date))
     else:
-        form = BlockForm(instance=block)
+        form = BlockEditForm(instance=block)
     
     return render(request, 'records/edit_block.html', {
         'form': form,
@@ -219,7 +217,7 @@ def monthly_report(request):
             
             for block in blocks:
                 block_hours = sum(entry.hours for entry in block.time_entries.all())
-                block_claims = sum(entry.claim for entry in block.time_entries.all())
+                block_claims = block.claim if block.claim else 0
                 totals[block.day_type]['hours'] += block_hours
                 totals[block.day_type]['claims'] += block_claims
             
@@ -292,7 +290,7 @@ def export_monthly_csv(request):
             }
             
             for block in blocks:
-                block_claims = sum(entry.claim for entry in block.time_entries.all())
+                block_claims = block.claim if block.claim else 0
                 totals[block.day_type]['claims'] += block_claims
             
             total_claims = sum(t['claims'] for t in totals.values())
@@ -366,7 +364,6 @@ def admin_user_dashboard(request, user_id):
     # Add calculated totals to each block
     for block in blocks:
         block.calculated_hours = sum(entry.hours for entry in block.time_entries.all())
-        block.calculated_claims = sum(entry.claim for entry in block.time_entries.all())
     
     # Calculate totals
     total_hours = sum(
@@ -374,8 +371,7 @@ def admin_user_dashboard(request, user_id):
         for block in blocks
     )
     total_claims = sum(
-        sum(entry.claim for entry in block.time_entries.all()) 
-        for block in blocks
+        block.claim for block in blocks if block.claim
     )
     
     # Build month context using utility function

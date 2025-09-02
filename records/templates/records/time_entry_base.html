@@ -56,21 +56,6 @@
                             {% if form.detail_text.errors %}<div class="text-danger">{{ form.detail_text.errors }}</div>{% endif %}
                             
                         </div>
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <label for="{{ form.claim.id_for_label }}" class="form-label mb-0">Claim Hours</label>
-                                <div class="d-flex flex-wrap gap-2" role="group">
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.25)">15m</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.5)">30m</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(1)">1h</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(2)">2h</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(3)">3h</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(4)">4h</button>
-                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(5)">5h</button>
-                                </div>
-                            </div>
-                            <div class="input-group">{{ form.claim }}</div>
-                            {% if form.claim.errors %}<div class="text-danger">{{ form.claim.errors }}</div>{% endif %}
                         </div>
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             {% block back_button %}
@@ -83,51 +68,4 @@
             </div>
         </div>
     </div>
-    <script>
-function setClaimHours(hours) {
-    const claimInput = document.getElementById('{{ form.claim.id_for_label }}');
-    
-    if (hours === 'calculated') {
-        // Calculate hours based on start and end time
-        const startTimeInput = document.getElementById('{{ form.time_started.id_for_label }}');
-        const endTimeInput = document.getElementById('{{ form.time_ended.id_for_label }}');
-        
-        if (startTimeInput.value && endTimeInput.value) {
-            const startTime = new Date('1970-01-01T' + startTimeInput.value + ':00');
-            let endTime = new Date('1970-01-01T' + endTimeInput.value + ':00');
-            
-            // Handle overnight blocks (end time before start time)
-            if (endTime <= startTime) {
-                endTime.setDate(endTime.getDate() + 1);
-            }
-            
-            const diffMs = endTime - startTime;
-            const diffHours = diffMs / (1000 * 60 * 60);
-            // Round up to nearest 15 minutes (0.25 hour)
-            const roundedHours = Math.ceil(diffHours * 4) / 4;
-            claimInput.value = roundedHours.toFixed(2);
-        } else {
-            alert('Please enter start and end times first.');
-        }
-    } else {
-        claimInput.value = hours;
-    }
-}
-
-// Auto-calculate when times change
-document.addEventListener('DOMContentLoaded', function() {
-    const startTimeInput = document.getElementById('{{ form.time_started.id_for_label }}');
-    const endTimeInput = document.getElementById('{{ form.time_ended.id_for_label }}');
-    const claimInput = document.getElementById('{{ form.claim.id_for_label }}');
-    
-    function updateCalculatedHours() {
-        if (startTimeInput.value && endTimeInput.value) {
-            setClaimHours('calculated');
-        }
-    }
-    
-    startTimeInput.addEventListener('change', updateCalculatedHours);
-    endTimeInput.addEventListener('change', updateCalculatedHours);
-});
-    </script>
 {% endblock content %}
