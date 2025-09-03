@@ -32,7 +32,7 @@ class WorkMode(models.Model):
         return self.name
 
 
-class Task(models.Model):
+class TaskType(models.Model):
     BOOTSTRAP_COLORS = [
         ("primary", "Primary (Blue)"),
         ("secondary", "Secondary (Gray)"),
@@ -270,7 +270,7 @@ class TimeEntry(models.Model):
     )
     time_started = models.TimeField()
     time_ended = models.TimeField()
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    task = models.ForeignKey(TaskType, on_delete=models.CASCADE)
     detail = models.ForeignKey(Detail, on_delete=models.SET_NULL, null=True, blank=True)
     work_mode = models.ForeignKey(WorkMode, on_delete=models.CASCADE)
     created = models.DateTimeField(default=timezone.now)

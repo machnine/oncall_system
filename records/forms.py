@@ -10,6 +10,8 @@ from .models import (
     LabTask,
     Assignment,
     DayType,
+    TaskType,
+    WorkMode,
     ASSIGNMENT_TYPE_CONFIG,
 )
 

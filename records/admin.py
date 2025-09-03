@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, Task, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment
+from .models import OnCallStaff, WorkMode, TaskType, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment
 
 
 @admin.register(OnCallStaff)
@@ -23,8 +23,10 @@ class WorkModeAdmin(admin.ModelAdmin):
     list_filter = ('color',)
 
 
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
+@admin.register(TaskType)
+class TaskTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "color")
+    search_fields = ("name",)
     list_display = ('name', 'color')
     search_fields = ('name',)
     list_filter = ('color',)
