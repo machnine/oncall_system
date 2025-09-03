@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, Task, Detail, Block, TimeEntry
+from .models import OnCallStaff, WorkMode, Task, DayType, Detail, Block, TimeEntry, Donor, Recipient, LabTask, Assignment
 
 
 @admin.register(OnCallStaff)
@@ -18,14 +18,47 @@ class OnCallStaffAdmin(admin.ModelAdmin):
 
 @admin.register(WorkMode)
 class WorkModeAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+    list_display = ('name', 'color')
     search_fields = ('name',)
+    list_filter = ('color',)
 
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+    list_display = ('name', 'color')
     search_fields = ('name',)
+    list_filter = ('color',)
+
+
+@admin.register(DayType)
+class DayTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'color')
+    search_fields = ('name',)
+    list_filter = ('color',)
+
+
+@admin.register(Donor)
+class DonorAdmin(admin.ModelAdmin):
+    list_display = ('donor_id', 'name', 'created')
+    search_fields = ('donor_id', 'name')
+    list_filter = ('created',)
+    ordering = ('donor_id',)
+
+
+@admin.register(Recipient)
+class RecipientAdmin(admin.ModelAdmin):
+    list_display = ('recipient_id', 'name', 'created')
+    search_fields = ('recipient_id', 'name')
+    list_filter = ('created',)
+    ordering = ('recipient_id',)
+
+
+@admin.register(LabTask)
+class LabTaskAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created')
+    search_fields = ('name', 'description')
+    list_filter = ('created',)
+    ordering = ('name',)
 
 
 @admin.register(Detail)
@@ -49,13 +82,21 @@ class TimeEntryInline(admin.TabularInline):
     get_hours.short_description = 'Hours'
 
 
+class AssignmentInline(admin.TabularInline):
+    model = Assignment
+    extra = 0
+    fields = ('entity_type', 'entity_id', 'notes')
+    verbose_name = "Assignment"
+    verbose_name_plural = "Assignments"
+
+
 @admin.register(Block)
 class BlockAdmin(admin.ModelAdmin):
-    list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_block_claim')
+    list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_block_claim', 'get_assignment_count')
     list_filter = ('day_type', 'date', 'staff')
     search_fields = ('staff__assignment_id', 'staff__user__username')
     date_hierarchy = 'date'
-    inlines = [TimeEntryInline]
+    inlines = [AssignmentInline, TimeEntryInline]
     
     def get_total_hours(self, obj):
         return sum(entry.hours for entry in obj.time_entries.all())
@@ -64,6 +105,25 @@ class BlockAdmin(admin.ModelAdmin):
     def get_block_claim(self, obj):
         return obj.claim if obj.claim else '-'
     get_block_claim.short_description = 'Block Claim'
+    
+    def get_assignment_count(self, obj):
+        return obj.assignments.count()
+    get_assignment_count.short_description = 'Assignments'
+
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ('block', 'entity_type', 'entity_id', 'get_entity_name', 'created')
+    list_filter = ('entity_type', 'block__date', 'block__staff')
+    search_fields = ('entity_id', 'block__staff__assignment_id')
+    date_hierarchy = 'block__date'
+    
+    def get_entity_name(self, obj):
+        entity = obj.get_entity_object()
+        if entity and hasattr(entity, 'name') and entity.name:
+            return entity.name
+        return '-'
+    get_entity_name.short_description = 'Entity Name'
 
 
 @admin.register(TimeEntry)
