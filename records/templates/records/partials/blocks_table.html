@@ -105,6 +105,29 @@
                                     <div style="width: 28%;"></div>
                                 {% endif %}
                             </div>
+                            
+                            <!-- Assignments Section - Same width as block header -->
+                            {% if block.assignments.all %}
+                                <div class="assignments-section border-bottom" 
+                                     style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f8f9fa{% else %}#ffffff{% endif %};">
+                                    <div class="assignments-container d-flex align-items-center py-2 px-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-check text-muted me-2"></i>
+                                            <strong class="small text-muted me-3">Assignments:</strong>
+                                            {% for assignment in block.assignments.all %}
+                                                <span class="badge bg-{{ assignment.display_color }} me-2 d-flex align-items-center">
+                                                    <i class="{{ assignment.display_icon }} me-1"></i>
+                                                    {{ assignment.entity_id }}
+                                                </span>
+                                                {% if assignment.notes %}
+                                                    <small class="text-muted me-3">({{ assignment.notes }})</small>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
                             <!-- Time Entries Section -->
                             <div class="collapse show" id="block-{{ block.id }}">
                                 {% if block.time_entries.all %}

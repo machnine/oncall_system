@@ -140,7 +140,31 @@ class LabTask(models.Model):
         return self.name
 
 
+# Assignment Type Configuration - This can be moved to a database table later if needed
+ASSIGNMENT_TYPE_CONFIG = {
+    'donor': {
+        'name': 'Donor',
+        'color': 'success',
+        'icon': 'bi-person-check',
+        'description': 'Blood/organ donor assignments'
+    },
+    'recipient': {
+        'name': 'Recipient', 
+        'color': 'info',
+        'icon': 'bi-person-fill',
+        'description': 'Blood/organ recipient assignments'
+    },
+    'lab_task': {
+        'name': 'Lab Task',
+        'color': 'warning',
+        'icon': 'bi-thermometer-low',
+        'description': 'Laboratory task assignments'
+    }
+}
+
+
 class Assignment(models.Model):
+    """Links TimeBlock to entities"""
     ENTITY_TYPES = [
         ('donor', 'Donor'),
         ('recipient', 'Recipient'),
@@ -151,6 +175,8 @@ class Assignment(models.Model):
     entity_type = models.CharField(max_length=20, choices=ENTITY_TYPES)
     entity_id = models.CharField(max_length=50, help_text="ID of the assigned entity")
     notes = models.TextField(blank=True, help_text="Notes about this assignment during this block")
+    color = models.CharField(max_length=20, default='primary', help_text="Bootstrap color for the assignment badge")
+    icon = models.CharField(max_length=50, default='bi-person-fill', help_text='Bootstrap icon class')
     created = models.DateTimeField(default=timezone.now)
     
     class Meta:
@@ -170,6 +196,22 @@ class Assignment(models.Model):
         except (Donor.DoesNotExist, Recipient.DoesNotExist, LabTask.DoesNotExist):
             return None
         return None
+    
+    def get_assignment_type_config(self):
+        """Get the configuration for this assignment type"""
+        return ASSIGNMENT_TYPE_CONFIG.get(self.entity_type, {})
+    
+    @property
+    def display_color(self):
+        """Get color from config or use direct field as fallback"""
+        config = self.get_assignment_type_config()
+        return config.get('color', self.color)
+    
+    @property  
+    def display_icon(self):
+        """Get icon from config or use direct field as fallback"""
+        config = self.get_assignment_type_config()
+        return config.get('icon', self.icon)
     
     def __str__(self):
         entity_obj = self.get_entity_object()

@@ -113,10 +113,11 @@ class TimeBlockAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('block', 'entity_type', 'entity_id', 'get_entity_name', 'created')
-    list_filter = ('entity_type', 'block__date', 'block__staff')
+    list_display = ('block', 'entity_type', 'entity_id', 'get_entity_name', 'display_color', 'display_icon', 'created')
+    list_filter = ('entity_type', 'color', 'block__date', 'block__staff')
     search_fields = ('entity_id', 'block__staff__assignment_id')
     date_hierarchy = 'block__date'
+    fields = ('block', 'entity_type', 'entity_id', 'notes', 'color', 'icon')
     
     def get_entity_name(self, obj):
         entity = obj.get_entity_object()

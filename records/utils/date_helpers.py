@@ -80,9 +80,9 @@ def build_month_context(month, year):
     prev_month, prev_year, next_month, next_year = get_month_navigation(month, year)
     
     # Get available years based on actual block data (will be imported when used)
-    from ..models import Block
+    from ..models import TimeBlock
     available_years = []
-    block_years = Block.objects.dates('date', 'year')
+    block_years = TimeBlock.objects.dates('date', 'year')
     if block_years:
         available_years = [d.year for d in block_years]
         # Ensure current year is included

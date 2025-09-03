@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
 from datetime import datetime, date
-from .models import OnCallStaff, TimeBlock, TimeEntry, WorkMode, Task, Detail
+from .models import OnCallStaff, TimeBlock, TimeEntry, WorkMode, Task, Detail, Assignment
 from .forms import TimeBlockForm, TimeBlockEditForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission
 from .utils.date_helpers import get_month_date_range, build_month_context, get_safe_month_year_from_request
@@ -30,7 +30,7 @@ def dashboard(request):
         staff=staff,
         date__gte=current_month_start,
         date__lt=next_month_start
-    ).prefetch_related('time_entries__task', 'time_entries__work_mode').order_by('-date')
+    ).prefetch_related('time_entries__task', 'time_entries__work_mode', 'assignments').order_by('-date')
     
     # Add calculated totals to each block
     for block in blocks:
@@ -69,7 +69,9 @@ def add_block(request):
         if form.is_valid():
             block = form.save(commit=False)
             block.staff = staff
-            block.save()
+            # Call form.save() with commit=True to trigger assignment processing
+            form.instance = block  # Update form instance with staff
+            block = form.save(commit=True)
             messages.success(request, 'Block created successfully!')
             return redirect(get_dashboard_url_with_date(block.date))
     else:
