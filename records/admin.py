@@ -113,12 +113,12 @@ class TimeBlockAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('block', 'entity_type', 'entity_id', 'get_entity_name', 'display_color', 'display_icon', 'created')
-    list_filter = ('entity_type', 'color', 'block__date', 'block__staff')
-    search_fields = ('entity_id', 'block__staff__assignment_id')
-    date_hierarchy = 'block__date'
-    fields = ('block', 'entity_type', 'entity_id', 'notes', 'color', 'icon')
-    
+    list_display = ('timeblock', 'entity_type', 'entity_id', 'get_entity_name', 'display_color', 'display_icon', 'created')
+    list_filter = ('entity_type', 'color', 'timeblock__date', 'timeblock__staff')
+    search_fields = ('entity_id', 'timeblock__staff__assignment_id')
+    date_hierarchy = 'timeblock__date'
+    fields = ('timeblock', 'entity_type', 'entity_id', 'notes', 'color', 'icon')
+
     def get_entity_name(self, obj):
         entity = obj.get_entity_object()
         if entity and hasattr(entity, 'name') and entity.name:
@@ -129,10 +129,10 @@ class AssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
-    list_display = ('block', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours')
-    list_filter = ('work_mode', 'task', 'block__day_type', 'block__date')
-    search_fields = ('block__staff__assignment_id', 'task__name', 'work_mode__name')
-    date_hierarchy = 'block__date'
+    list_display = ('timeblock', 'time_started', 'time_ended', 'task', 'work_mode', 'get_hours')
+    list_filter = ('work_mode', 'task', 'timeblock__day_type', 'timeblock__date')
+    search_fields = ('timeblock__staff__assignment_id', 'task__name', 'work_mode__name')
+    date_hierarchy = 'timeblock__date'
     readonly_fields = ('get_hours',)
     
     def get_hours(self, obj):

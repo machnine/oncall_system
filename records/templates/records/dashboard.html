@@ -1,29 +1,25 @@
-{% extends 'records/base.html' %}
-
-{% block title %}Monthly Records - {{ current_month }}{% endblock title %}
-
+{% extends "records/base.html" %}
+{% block title %}
+    Monthly Records - {{ current_month }}
+{% endblock title %}
 {% block content %}
-<div class="row">
-    <div class="col-lg-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center">
-                <h2><i class="bi-calendar3"></i> Monthly Records</h2>
-                
-            </div>                        
-            <div class="ms-3">
-                {% include 'records/partials/month_selector.html' %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <h2>
+                        <i class="bi-calendar3"></i> Monthly Records
+                    </h2>
+                </div>
+                <div class="ms-3">{% include "records/partials/month_selector.html" %}</div>
             </div>
         </div>
     </div>
-</div>
-
-{% include 'records/partials/stats_cards.html' %}
-
-{% with is_admin_view=False %}
-    {% include 'records/partials/blocks_table.html' %}
-{% endwith %}
-
-{% with is_admin_view=False %}
-    {% include 'records/partials/blocks_javascript.html' %}
-{% endwith %}
+    {% include "records/partials/stats_cards.html" %}
+    {% with is_admin_view=False %}
+        {% include "records/partials/timeblocks_table.html" %}
+    {% endwith %}
+    {% with is_admin_view=False %}
+        {% include "records/partials/timeblocks_javascript.html" %}
+    {% endwith %}
 {% endblock content %}

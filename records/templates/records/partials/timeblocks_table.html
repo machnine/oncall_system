@@ -5,14 +5,14 @@
         </h5>
         <div class="d-flex align-items-center">
             {% if not is_admin_view and is_current_month %}
-                <a href="{% url 'add_block' %}"
+                <a href="{% url 'add_timeblock' %}"
                    class="btn btn-outline-success border-0"
                    data-bs-toggle="tooltip"
                    title="Add a new block">
                     <i class="bi bi-plus-circle"></i>
                 </a>
             {% endif %}
-            {% if blocks %}
+            {% if time_blocks %}
                 <button id="toggleAllBlocks"
                         class="btn btn-outline-dark border-0 {% if not is_admin_view and is_current_month %}ms-2{% endif %}"
                         data-bs-toggle="tooltip"
@@ -23,7 +23,7 @@
         </div>
     </div>
     <div class="card-body">
-        {% if blocks %}
+        {% if time_blocks %}
             <!-- Header Row -->
             <div class="blocks-header d-none d-md-flex align-items-center py-2 px-3 border-bottom text-muted small fw-bold">
                 <div style="width: 20%;">Date</div>
@@ -39,9 +39,9 @@
             </div>
             <!-- Blocks Container -->
             <div class="blocks-container">
-                {% regroup blocks by date as date_groups %}
+                {% regroup time_blocks by date as date_groups %}
                 {% for date_group in date_groups %}
-                    {% for block in date_group.list %}
+                    {% for tblock in date_group.list %}
                         <div class="block-item border-bottom">
                             <!-- Block Header -->
                             <div class="block-header d-flex align-items-center py-3 px-3 border-bottom"
@@ -50,18 +50,18 @@
                                     <button class="btn btn-sm btn-outline-secondary border-0 me-2"
                                             type="button"
                                             data-bs-toggle="collapse"
-                                            data-bs-target="#block-{{ block.id }}"
+                                            data-bs-target="#block-{{ tblock.id }}"
                                             aria-expanded="true">
                                         <i class="bi bi-caret-up"></i>
                                     </button>
-                                    <span class="fw-bold">{{ block.date|date:"d M Y" }}</span>
+                                    <span class="fw-bold">{{ tblock.date|date:"d M Y" }}</span>
                                 </div>
                                 <div style="width: 12%;">
-                                    <span class="badge bg-{{ block.day_type.color }}">{{ block.day_type.name }}</span>
+                                    <span class="badge bg-{{ tblock.day_type.color }}">{{ tblock.day_type.name }}</span>
                                 </div>
                                 <div style="width: 18%;">
-                                    {% if block.time_entries.all %}
-                                        {% with first_entry=block.time_entries.first last_entry=block.time_entries.last %}
+                                    {% if tblock.time_entries.all %}
+                                        {% with first_entry=tblock.time_entries.first last_entry=tblock.time_entries.last %}
                                             <span class="text-muted">{{ first_entry.time_started|time:"H:i" }} - {{ last_entry.time_ended|time:"H:i" }}</span>
                                         {% endwith %}
                                     {% else %}
@@ -69,11 +69,11 @@
                                     {% endif %}
                                 </div>
                                 <div style="width: 10%;">
-                                    <span class="fw-medium">{{ block.calculated_hours|floatformat:2 }}</span>
+                                    <span class="fw-medium">{{ tblock.calculated_hours|floatformat:2 }}</span>
                                 </div>
                                 <div style="width: 12%;">
-                                    {% if block.claim %}
-                                        <span class="fw-medium">{{ block.claim|floatformat:2 }}</span>
+                                    {% if tblock.claim %}
+                                        <span class="fw-medium">{{ tblock.claim|floatformat:2 }}</span>
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
@@ -81,19 +81,19 @@
                                 {% if not is_admin_view %}
                                     <div style="width: 28%;" class="text-end">
                                         <div class="btn-group block-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
-                                            <a href="{% url 'add_time_entry' block.id %}"
+                                            <a href="{% url 'add_time_entry' tblock.id %}"
                                                class="btn btn-sm btn-outline-success border-0"
                                                data-bs-toggle="tooltip"
                                                title="Add time entry to this block">
                                                 <i class="bi bi-plus-circle"></i>
                                             </a>
-                                            <a href="{% url 'edit_block' block.id %}"
+                                            <a href="{% url 'edit_timeblock' tblock.id %}"
                                                class="btn btn-sm btn-outline-primary border-0"
                                                data-bs-toggle="tooltip"
                                                title="Edit block date and day type">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="{% url 'delete_block' block.id %}"
+                                            <a href="{% url 'delete_timeblock' tblock.id %}"
                                                class="btn btn-sm btn-outline-danger border-0"
                                                data-bs-toggle="tooltip"
                                                title="Delete block and all time entries">
@@ -105,32 +105,26 @@
                                     <div style="width: 28%;"></div>
                                 {% endif %}
                             </div>
-                            
                             <!-- Assignments Section - Same width as block header -->
-                            {% if block.assignments.all %}
-                                <div class="assignments-section border-bottom" 
-                                     style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f8f9fa{% else %}#ffffff{% endif %};">
+                            {% if tblock.assignments.all %}
+                                <div class="assignments-section border-bottom"
+                                     style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f8f9fa{% else %}#ffffff{% endif %}">
                                     <div class="assignments-container d-flex align-items-center py-2 px-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-person-check text-muted me-2"></i>
-                                            <strong class="small text-muted me-3">Assignments:</strong>
-                                            {% for assignment in block.assignments.all %}
+                                        <div class="d-flex align-items-center">                                            
+                                            {% for assignment in tblock.assignments.all %}
                                                 <span class="badge bg-{{ assignment.display_color }} me-2 d-flex align-items-center">
                                                     <i class="{{ assignment.display_icon }} me-1"></i>
                                                     {{ assignment.entity_id }}
                                                 </span>
-                                                {% if assignment.notes %}
-                                                    <small class="text-muted me-3">({{ assignment.notes }})</small>
-                                                {% endif %}
+                                                {% if assignment.notes %}<small class="text-muted me-3">({{ assignment.notes }})</small>{% endif %}
                                             {% endfor %}
                                         </div>
                                     </div>
                                 </div>
                             {% endif %}
-                            
                             <!-- Time Entries Section -->
-                            <div class="collapse show" id="block-{{ block.id }}">
-                                {% if block.time_entries.all %}
+                            <div class="collapse show" id="block-{{ tblock.id }}">
+                                {% if tblock.time_entries.all %}
                                     <div class="time-entries-container px-3 pb-3">
                                         <!-- Time Entries Header -->
                                         <div class="time-entries-header d-none d-md-flex align-items-center pt-2 px-4 text-muted small"
@@ -146,7 +140,7 @@
                                             <div style="width: 10%;" class="text-end"></div>
                                         </div>
                                         <!-- Time Entries -->
-                                        {% for entry in block.time_entries.all %}
+                                        {% for entry in tblock.time_entries.all %}
                                             <div class="time-entry d-flex align-items-center py-2 px-4 border-bottom"
                                                  style="margin-left: 2rem;
                                                         border-bottom: 1px solid #e9ecef !important">
@@ -157,7 +151,7 @@
                                                     <span class="small">{{ entry.time_ended|time:"H:i" }}</span>
                                                 </div>
                                                 <div style="width: 12%;">
-                                                        <span class="small">{{ entry.hours|floatformat:2 }}</span>
+                                                    <span class="small">{{ entry.hours|floatformat:2 }}</span>
                                                 </div>
                                                 <div style="width: 15%;">
                                                     <span class="badge bg-{{ entry.work_mode.color }}">{{ entry.work_mode.name }}</span>
@@ -202,7 +196,7 @@
                                             No time entries for this block.
                                         {% else %}
                                             No time entries yet.
-                                            <a href="{% url 'add_time_entry' block.id %}" class="btn btn-sm btn-success ms-2">
+                                            <a href="{% url 'add_time_entry' tblock.id %}" class="btn btn-sm btn-success ms-2">
                                                 <i class="bi bi-plus"></i> Add First Entry
                                             </a>
                                         {% endif %}
@@ -224,7 +218,7 @@
                 {% else %}
                     <h5 class="mt-3 text-muted">No blocks recorded for this month</h5>
                     <p class="text-muted">Start by adding your first block</p>
-                    <a href="{% url 'add_block' %}" class="btn btn-primary">
+                    <a href="{% url 'add_timeblock' %}" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Add Your First Block
                     </a>
                 {% endif %}
