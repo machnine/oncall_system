@@ -1,10 +1,10 @@
 from django import forms
 from django.utils import timezone
 from govuk_bank_holidays.bank_holidays import BankHolidays
-from .models import Block, TimeEntry, Detail
+from .models import TimeBlock, TimeEntry, Detail
 
 
-class BlockForm(forms.ModelForm):
+class TimeBlockForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set default date to today if this is a new form (no instance)
@@ -69,14 +69,14 @@ class BlockForm(forms.ModelForm):
         return instance
     
     class Meta:
-        model = Block
+        model = TimeBlock
         fields = ['date']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
 
-class BlockEditForm(forms.ModelForm):
+class TimeBlockEditForm(forms.ModelForm):
     """Form for editing existing blocks - includes claim field"""
     
     def __init__(self, *args, **kwargs):
@@ -140,7 +140,7 @@ class BlockEditForm(forms.ModelForm):
         return instance
     
     class Meta:
-        model = Block
+        model = TimeBlock
         fields = ['date', 'claim']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),

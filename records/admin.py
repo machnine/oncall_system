@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, Task, DayType, Detail, Block, TimeEntry, Donor, Recipient, LabTask, Assignment
+from .models import OnCallStaff, WorkMode, Task, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment
 
 
 @admin.register(OnCallStaff)
@@ -90,8 +90,8 @@ class AssignmentInline(admin.TabularInline):
     verbose_name_plural = "Assignments"
 
 
-@admin.register(Block)
-class BlockAdmin(admin.ModelAdmin):
+@admin.register(TimeBlock)
+class TimeBlockAdmin(admin.ModelAdmin):
     list_display = ('staff', 'date', 'day_type', 'get_total_hours', 'get_block_claim', 'get_assignment_count')
     list_filter = ('day_type', 'date', 'staff')
     search_fields = ('staff__assignment_id', 'staff__user__username')

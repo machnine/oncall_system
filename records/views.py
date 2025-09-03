@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
 from datetime import datetime, date
-from .models import OnCallStaff, Block, TimeEntry, WorkMode, Task, Detail
-from .forms import BlockForm, BlockEditForm, TimeEntryForm
+from .models import OnCallStaff, TimeBlock, TimeEntry, WorkMode, Task, Detail
+from .forms import TimeBlockForm, TimeBlockEditForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission
 from .utils.date_helpers import get_month_date_range, build_month_context, get_safe_month_year_from_request
 
@@ -26,7 +26,7 @@ def dashboard(request):
     # Calculate date range for selected month
     current_month_start, next_month_start = get_month_date_range(year, month)
     
-    blocks = Block.objects.filter(
+    blocks = TimeBlock.objects.filter(
         staff=staff,
         date__gte=current_month_start,
         date__lt=next_month_start
@@ -65,7 +65,7 @@ def add_block(request):
     staff = request.staff
     
     if request.method == 'POST':
-        form = BlockForm(request.POST)
+        form = TimeBlockForm(request.POST)
         if form.is_valid():
             block = form.save(commit=False)
             block.staff = staff
@@ -73,7 +73,7 @@ def add_block(request):
             messages.success(request, 'Block created successfully!')
             return redirect(get_dashboard_url_with_date(block.date))
     else:
-        form = BlockForm()
+        form = TimeBlockForm()
     
     return render(request, 'records/add_block.html', {'form': form})
 
@@ -84,7 +84,7 @@ def add_block(request):
 def add_time_entry(request, block_id):
     """Add a time entry to a block"""
     staff = request.staff
-    block = get_object_or_404(Block, id=block_id, staff=staff)
+    block = get_object_or_404(TimeBlock, id=block_id, staff=staff)
     
     if request.method == 'POST':
         form = TimeEntryForm(request.POST)
@@ -152,16 +152,16 @@ def delete_time_entry(request, entry_id):
 def edit_block(request, block_id):
     """Edit a block"""
     staff = request.staff
-    block = get_object_or_404(Block, id=block_id, staff=staff)
+    block = get_object_or_404(TimeBlock, id=block_id, staff=staff)
     
     if request.method == 'POST':
-        form = BlockEditForm(request.POST, instance=block)
+        form = TimeBlockEditForm(request.POST, instance=block)
         if form.is_valid():
             updated_block = form.save()
             messages.success(request, 'Block updated successfully!')
             return redirect(get_dashboard_url_with_date(updated_block.date))
     else:
-        form = BlockEditForm(instance=block)
+        form = TimeBlockEditForm(instance=block)
     
     return render(request, 'records/edit_block.html', {
         'form': form,
@@ -173,7 +173,7 @@ def edit_block(request, block_id):
 def delete_block(request, block_id):
     """Delete a block and all its time entries"""
     staff = request.staff
-    block = get_object_or_404(Block, id=block_id, staff=staff)
+    block = get_object_or_404(TimeBlock, id=block_id, staff=staff)
     
     if request.method == 'POST':
         block_date = block.date
@@ -200,7 +200,7 @@ def monthly_report(request):
     # Get all staff and their blocks for the month
     staff_reports = []
     for staff in OnCallStaff.objects.all().select_related('user'):
-        blocks = Block.objects.filter(
+        blocks = TimeBlock.objects.filter(
             staff=staff,
             date__gte=report_date,
             date__lt=next_month_start
@@ -234,7 +234,7 @@ def monthly_report(request):
             })
     
     # Generate available months for dropdown
-    first_block = Block.objects.order_by('date').first()
+    first_block = TimeBlock.objects.order_by('date').first()
     available_months = []
     if first_block:
         today = timezone.now().date()
@@ -274,7 +274,7 @@ def export_monthly_csv(request):
     # Get all staff and their blocks for the month
     staff_reports = []
     for staff in OnCallStaff.objects.all().select_related('user'):
-        blocks = Block.objects.filter(
+        blocks = TimeBlock.objects.filter(
             staff=staff,
             date__gte=report_date,
             date__lt=next_month_start
@@ -355,7 +355,7 @@ def admin_user_dashboard(request, user_id):
     # Calculate date range for selected month
     current_month_start, next_month_start = get_month_date_range(year, month)
     
-    blocks = Block.objects.filter(
+    blocks = TimeBlock.objects.filter(
         staff=staff,
         date__gte=current_month_start,
         date__lt=next_month_start

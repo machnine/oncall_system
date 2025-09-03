@@ -76,7 +76,7 @@ class Detail(models.Model):
         return self.text[:50] + "..." if len(self.text) > 50 else self.text
 
 
-class Block(models.Model):
+class TimeBlock(models.Model):
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     date = models.DateField()
     day_type = models.ForeignKey(DayType, on_delete=models.CASCADE, null=True, blank=True)
@@ -147,7 +147,7 @@ class Assignment(models.Model):
         ('lab_task', 'Lab Task'),
     ]
     
-    block = models.ForeignKey(Block, on_delete=models.CASCADE, related_name='assignments')
+    block = models.ForeignKey(TimeBlock, on_delete=models.CASCADE, related_name='assignments')
     entity_type = models.CharField(max_length=20, choices=ENTITY_TYPES)
     entity_id = models.CharField(max_length=50, help_text="ID of the assigned entity")
     notes = models.TextField(blank=True, help_text="Notes about this assignment during this block")
@@ -179,7 +179,7 @@ class Assignment(models.Model):
 
 
 class TimeEntry(models.Model):
-    block = models.ForeignKey(Block, on_delete=models.CASCADE, related_name='time_entries')
+    block = models.ForeignKey(TimeBlock, on_delete=models.CASCADE, related_name='time_entries')
     time_started = models.TimeField()
     time_ended = models.TimeField()
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
