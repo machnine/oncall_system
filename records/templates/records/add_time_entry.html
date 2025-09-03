@@ -2,7 +2,7 @@
 
 {% block entry_title %}Add Time Entry{% endblock entry_title %}
 
-{% block entry_header %}<i class="bi bi-plus-circle"></i> Add Time Entry - {{ block.date|date:"d/m/Y" }} ({{ block.day_type }}){% endblock entry_header %}
+{% block entry_header %}<i class="bi bi-plus-circle"></i> Add Time Entry - {{ time_block.date|date:"d/m/Y" }} ({{ time_block.day_type.name }}){% endblock entry_header %}
 
 {% block back_button %}
 <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">

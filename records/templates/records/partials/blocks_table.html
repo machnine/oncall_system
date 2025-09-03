@@ -1,7 +1,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5>
-            <i class="bi bi-list"></i> Blocks
+            <i class="bi bi-list"></i> Time Blocks
         </h5>
         <div class="d-flex align-items-center">
             {% if not is_admin_view and is_current_month %}
@@ -24,64 +24,62 @@
     </div>
     <div class="card-body">
         {% if blocks %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th width="15%">Date</th>
-                            <th width="15%">Day Type</th>
-                            <th width="20%">Time Span</th>
-                            <th width="15%">Hours</th>
-                            <th width="15%">Claim Hours</th>
-                            {% if not is_admin_view %}<th class="text-end">Actions</th>{% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for block in blocks %}
-                            {% ifchanged block.date %}
-                                {% cycle 'bg-light' '' as date_bg silent %}
-                            {% endifchanged %}
-                            <tr style="background-color: {% if date_bg == 'bg-light' %}transparent{% else %}#f5f5f5{% endif %};">
-                                <td>
-                                    <button class="btn btn-sm btn-outline-secondary border-0"
+            <!-- Header Row -->
+            <div class="blocks-header d-none d-md-flex align-items-center py-2 px-3 border-bottom text-muted small fw-bold">
+                <div style="width: 20%;">Date</div>
+                <div style="width: 12%;">Day Type</div>
+                <div style="width: 18%;">Time Span</div>
+                <div style="width: 10%;">Hours</div>
+                <div style="width: 12%;">Claim Hours</div>
+                {% if not is_admin_view %}
+                    <div style="width: 28%;" class="text-end">Actions</div>
+                {% else %}
+                    <div style="width: 28%;"></div>
+                {% endif %}
+            </div>
+            <!-- Blocks Container -->
+            <div class="blocks-container">
+                {% regroup blocks by date as date_groups %}
+                {% for date_group in date_groups %}
+                    {% for block in date_group.list %}
+                        <div class="block-item border-bottom">
+                            <!-- Block Header -->
+                            <div class="block-header d-flex align-items-center py-3 px-3 border-bottom"
+                                 style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f5f5f5{% else %}transparent{% endif %}">
+                                <div style="width: 20%;" class="d-flex align-items-center">
+                                    <button class="btn btn-sm btn-outline-secondary border-0 me-2"
                                             type="button"
                                             data-bs-toggle="collapse"
                                             data-bs-target="#block-{{ block.id }}"
                                             aria-expanded="true">
                                         <i class="bi bi-caret-up"></i>
                                     </button>
-                                    {{ block.date|date:"d M Y" }}
-                                </td>
-                                <td>
-                                    {% if block.day_type == 'Weekday' %}
-                                        <span class="badge bg-success">{{ block.day_type }}</span>
-                                    {% elif block.day_type == 'Saturday' %}
-                                        <span class="badge bg-warning">{{ block.day_type }}</span>
-                                    {% elif block.day_type == 'Sunday' %}
-                                        <span class="badge bg-danger">{{ block.day_type }}</span>
-                                    {% else %}
-                                        <span class="badge bg-info">{{ block.day_type }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
+                                    <span class="fw-bold">{{ block.date|date:"d M Y" }}</span>
+                                </div>
+                                <div style="width: 12%;">
+                                    <span class="badge bg-{{ block.day_type.color }}">{{ block.day_type.name }}</span>
+                                </div>
+                                <div style="width: 18%;">
                                     {% if block.time_entries.all %}
                                         {% with first_entry=block.time_entries.first last_entry=block.time_entries.last %}
-                                            <span class="text-muted small">{{ first_entry.time_started|time:"H:i" }} - {{ last_entry.time_ended|time:"H:i" }}</span>
+                                            <span class="text-muted">{{ first_entry.time_started|time:"H:i" }} - {{ last_entry.time_ended|time:"H:i" }}</span>
                                         {% endwith %}
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
-                                </td>                                
-                                <td>{{ block.calculated_hours|floatformat:2 }}</td>
-                                <td>
+                                </div>
+                                <div style="width: 10%;">
+                                    <span class="fw-medium">{{ block.calculated_hours|floatformat:2 }}</span>
+                                </div>
+                                <div style="width: 12%;">
                                     {% if block.claim %}
-                                        {{ block.claim|floatformat:2 }}
+                                        <span class="fw-medium">{{ block.claim|floatformat:2 }}</span>
                                     {% else %}
-                                        -
+                                        <span class="text-muted">-</span>
                                     {% endif %}
-                                </td>
+                                </div>
                                 {% if not is_admin_view %}
-                                    <td class="text-end">
+                                    <div style="width: 28%;" class="text-end">
                                         <div class="btn-group block-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
                                             <a href="{% url 'add_time_entry' block.id %}"
                                                class="btn btn-sm btn-outline-success border-0"
@@ -102,92 +100,95 @@
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                         </div>
-                                    </td>
+                                    </div>
+                                {% else %}
+                                    <div style="width: 28%;"></div>
                                 {% endif %}
-                            </tr>
-                            <tr class="collapse show" id="block-{{ block.id }}">
-                                <td colspan="{% if is_admin_view %}6{% else %}7{% endif %}" class="pb-3">
-                                    {% if block.time_entries.all %}
-                                        <div class="table-responsive"
-                                             style="margin-left: 3rem;
-                                                    padding-left:1rem;
-                                                    border-left: 1px solid #dee2e6">
-                                            <table class="table table-sm mb-0 border-0" style="--bs-table-border-width: 1px; --bs-table-border-color: #e9ecef;">
-                                                <thead class="text-muted" style="font-size: 0.8rem; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef !important;">
-                                                    <tr>
-                                                        <td style="width: 15%; border: none;">Start</td>
-                                                        <td style="width: 15%; border: none;">End</td>
-                                                        <td style="width: 15%; border: none;">Hours</td>
-                                                        <td style="width: 15%; border: none;">Work Mode</td>
-                                                        <td style="width: 15%; border: none;">Task</td>
-                                                        <td style="width: 15%; border: none;">Details</td>
-                                                        {% if not is_admin_view %}
-                                                            <td style="width: 10%; border: none;"></td>
-                                                        {% endif %}
-                                                    </tr>
-                                                </thead>
-                                                <tbody style="border-top: 1px solid #e9ecef !important;">
-                                                    {% for entry in block.time_entries.all %}
-                                                        <tr style="border-bottom: 1px solid #e9ecef;">
-                                                            <td style="border-top: 1px solid #e9ecef;">{{ entry.time_started|time:"H:i" }}</td>
-                                                            <td style="border-top: 1px solid #e9ecef;">{{ entry.time_ended|time:"H:i" }}</td>
-                                                            <td style="border-top: 1px solid #e9ecef;">{{ entry.hours|floatformat:2 }}</td>
-                                                            <td style="border-top: 1px solid #e9ecef;">
-                                                                {% if entry.work_mode.name == 'WFH' %}
-                                                                    <span class="badge bg-primary">{{ entry.work_mode.name }}</span>
-                                                                {% else %}
-                                                                    <span class="badge bg-secondary">{{ entry.work_mode.name }}</span>
-                                                                {% endif %}
-                                                            </td>
-                                                            <td style="border-top: 1px solid #e9ecef;">{{ entry.task.name }}</td>
-                                                            <td style="border-top: 1px solid #e9ecef;">
-                                                                {% if entry.detail %}
-                                                                    <span title="{{ entry.detail.text }}" data-bs-toggle="tooltip">{{ entry.detail.text|truncatechars:20 }}</span>
-                                                                {% else %}
-                                                                    -
-                                                                {% endif %}
-                                                            </td>
-                                                            {% if not is_admin_view %}
-                                                                <td class="text-end" style="border-top: 1px solid #e9ecef;">
-                                                                    <div class="btn-group entry-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
-                                                                        <a href="{% url 'edit_time_entry' entry.id %}"
-                                                                           class="btn btn-sm btn-outline-primary border-0"
-                                                                           data-bs-toggle="tooltip"
-                                                                           title="Edit this time entry">
-                                                                            <i class="bi bi-pencil"></i>
-                                                                        </a>
-                                                                        <a href="{% url 'delete_time_entry' entry.id %}"
-                                                                           class="btn btn-sm btn-outline-danger border-0"
-                                                                           data-bs-toggle="tooltip"
-                                                                           title="Delete this time entry">
-                                                                            <i class="bi bi-trash"></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </td>
-                                                            {% endif %}
-                                                        </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
+                            </div>
+                            <!-- Time Entries Section -->
+                            <div class="collapse show" id="block-{{ block.id }}">
+                                {% if block.time_entries.all %}
+                                    <div class="time-entries-container px-3 pb-3">
+                                        <!-- Time Entries Header -->
+                                        <div class="time-entries-header d-none d-md-flex align-items-center pt-2 px-4 text-muted small"
+                                             style="font-size: 0.75rem;
+                                                    border-bottom: 1px solid #e9ecef;
+                                                    margin-left: 2rem">
+                                            <div style="width: 12%;">Start</div>
+                                            <div style="width: 12%;">End</div>
+                                            <div style="width: 12%;">Hours</div>
+                                            <div style="width: 15%;">Work Mode</div>
+                                            <div style="width: 18%;">Task</div>
+                                            <div style="width: 21%;">Details</div>
+                                            <div style="width: 10%;" class="text-end"></div>
                                         </div>
-                                    {% else %}
-                                        <div class="p-3 text-center text-muted"
-                                             style="margin-left: 2rem;
-                                                    border-left: 1px solid #dee2e6;
-                                                    background-color: #f8f9fa">
-                                            <i class="bi bi-clock-history"></i>
-                                            {% if is_admin_view %}
-                                                No time entries for this block.
-                                            {% else %}
-                                                No time entries yet. <a href="{% url 'add_time_entry' block.id %}" class="btn btn-sm btn-success ms-2"><i class="bi bi-plus"></i> Add First Entry</a>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                        <!-- Time Entries -->
+                                        {% for entry in block.time_entries.all %}
+                                            <div class="time-entry d-flex align-items-center py-2 px-4 border-bottom"
+                                                 style="margin-left: 2rem;
+                                                        border-bottom: 1px solid #e9ecef !important">
+                                                <div style="width: 12%;">
+                                                    <span class="small">{{ entry.time_started|time:"H:i" }}</span>
+                                                </div>
+                                                <div style="width: 12%;">
+                                                    <span class="small">{{ entry.time_ended|time:"H:i" }}</span>
+                                                </div>
+                                                <div style="width: 12%;">
+                                                        <span class="small">{{ entry.hours|floatformat:2 }}</span>
+                                                </div>
+                                                <div style="width: 15%;">
+                                                    <span class="badge bg-{{ entry.work_mode.color }}">{{ entry.work_mode.name }}</span>
+                                                </div>
+                                                <div style="width: 18%;">
+                                                    <span class="badge bg-{{ entry.task.color }} small">{{ entry.task.name }}</span>
+                                                </div>
+                                                <div style="width: 21%;">
+                                                    {% if entry.detail %}
+                                                        <span class="small text-muted" title="{{ entry.detail.text }}" data-bs-toggle="tooltip">
+                                                            {{ entry.detail.text|truncatechars:30 }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </div>
+                                                {% if not is_admin_view %}
+                                                    <div style="width: 10%;" class="text-end">
+                                                        <div class="btn-group entry-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
+                                                            <a href="{% url 'edit_time_entry' entry.id %}"
+                                                               class="btn btn-sm btn-outline-primary border-0"
+                                                               data-bs-toggle="tooltip"
+                                                               title="Edit this time entry">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                            <a href="{% url 'delete_time_entry' entry.id %}"
+                                                               class="btn btn-sm btn-outline-danger border-0"
+                                                               data-bs-toggle="tooltip"
+                                                               title="Delete this time entry">
+                                                                <i class="bi bi-trash"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="no-entries p-3 text-center text-muted" style="margin-left: 2rem; background-color: #f8f9fa;">
+                                        <i class="bi bi-clock-history"></i>
+                                        {% if is_admin_view %}
+                                            No time entries for this block.
+                                        {% else %}
+                                            No time entries yet.
+                                            <a href="{% url 'add_time_entry' block.id %}" class="btn btn-sm btn-success ms-2">
+                                                <i class="bi bi-plus"></i> Add First Entry
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
             </div>
         {% else %}
             <div class="text-center py-4">
@@ -208,3 +209,14 @@
         {% endif %}
     </div>
 </div>
+<style>
+/* Block actions hover effect */
+.block-header:hover .block-actions {
+    opacity: 1 !important;
+}
+
+/* Time entry actions hover effect */
+.time-entry:hover .entry-actions {
+    opacity: 1 !important;
+}
+</style>

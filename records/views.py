@@ -99,7 +99,7 @@ def add_time_entry(request, block_id):
     
     context = {
         'form': form,
-        'block': block,
+        'time_block': block,
     }
     return render(request, 'records/add_time_entry.html', context)
 
@@ -125,7 +125,7 @@ def edit_time_entry(request, entry_id):
     context = {
         'form': form,
         'time_entry': time_entry,
-        'block': time_entry.block,
+        'time_block': time_entry.block,
     }
     return render(request, 'records/edit_time_entry.html', context)
 
@@ -144,7 +144,7 @@ def delete_time_entry(request, entry_id):
     
     return render(request, 'records/confirm_delete_time_entry.html', {
         'time_entry': time_entry,
-        'block': time_entry.block,
+        'time_block': time_entry.block,
     })
 
 
@@ -182,7 +182,7 @@ def delete_block(request, block_id):
         return redirect(get_dashboard_url_with_date(block_date))
     
     return render(request, 'records/confirm_delete_block.html', {
-        'block': block,
+        'time_block': block,
         'entry_count': block.time_entries.count(),
     })
 

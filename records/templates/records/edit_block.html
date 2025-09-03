@@ -1,13 +1,13 @@
 {% extends 'records/base.html' %}
 
-{% block title %}Edit Block - {{ block.date|date:"d M Y" }}{% endblock %}
+{% block title %}Edit Time Block{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h5><i class="bi bi-pencil"></i> Edit Block - {{ block.date|date:"d M Y" }}</h5>
+                <h5><i class="bi bi-pencil"></i> Edit Time Block</h5>
             </div>
             <div class="card-body">
                 <form method="post">
@@ -18,8 +18,7 @@
                         {{ form.date }}
                         {% if form.date.errors %}
                             <div class="text-danger">{{ form.date.errors }}</div>
-                        {% endif %}
-                        <div class="form-text">The day type (weekday/weekend/bank holiday) is automatically determined based on the selected date.</div>
+                        {% endif %}                        
                     </div>
 
                     <div class="mb-3">
@@ -36,8 +35,7 @@
                         {{ form.claim }}
                         {% if form.claim.errors %}
                             <div class="text-danger">{{ form.claim.errors }}</div>
-                        {% endif %}
-                        <div class="form-text">Enter the total claim hours for this entire block (optional).</div>
+                        {% endif %}                        
                     </div>
 
                     <div class="alert alert-warning">
