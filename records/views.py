@@ -104,7 +104,7 @@ def add_time_entry(request, block_id):
         "form": form,
         "time_block": time_block,
     }
-    return render(request, "records/add_time_entry.html", context)
+    return render(request, "records/add_timeentry.html", context)
 
 
 @require_oncall_staff
@@ -130,7 +130,7 @@ def edit_time_entry(request, entry_id):
         "time_entry": time_entry,
         "time_block": time_entry.timeblock,
     }
-    return render(request, "records/edit_time_entry.html", context)
+    return render(request, "records/edit_timeentry.html", context)
 
 
 @require_oncall_staff
@@ -147,7 +147,7 @@ def delete_time_entry(request, entry_id):
 
     return render(
         request,
-        "records/confirm_delete_time_entry.html",
+        "records/confirm_delete_timeentry.html",
         {
             "time_entry": time_entry,
             "time_block": time_entry.timeblock,
@@ -196,7 +196,7 @@ def delete_timeblock(request, block_id):
 
     return render(
         request,
-        "records/confirm_delete_block.html",
+        "records/confirm_delete_timeblock.html",
         {
             "time_block": time_block,
             "entry_count": time_block.time_entries.count(),
