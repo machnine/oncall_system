@@ -203,9 +203,10 @@ class TimeBlockForm(forms.ModelForm):
 
     class Meta:
         model = TimeBlock
-        fields = ["date"]
+        fields = ["date", "oncall_type"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "oncall_type": forms.RadioSelect(attrs={"class": "form-check-input"}),
         }
 
 
@@ -396,9 +397,10 @@ class TimeBlockEditForm(forms.ModelForm):
 
     class Meta:
         model = TimeBlock
-        fields = ["date", "claim"]
+        fields = ["date", "oncall_type", "claim"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "oncall_type": forms.RadioSelect(attrs={"class": "form-check-input"}),
             "claim": forms.NumberInput(
                 attrs={
                     "class": "form-control",

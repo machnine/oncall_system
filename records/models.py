@@ -80,10 +80,21 @@ class Detail(models.Model):
 
 
 class TimeBlock(models.Model):
+    ONCALL_TYPE_CHOICES = [
+        ('normal', 'Normal'),
+        ('nhsp', 'NHSP'),
+    ]
+    
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     date = models.DateField()
     day_type = models.ForeignKey(
         DayType, on_delete=models.CASCADE, null=True, blank=True
+    )
+    oncall_type = models.CharField(
+        max_length=20, 
+        choices=ONCALL_TYPE_CHOICES, 
+        default='normal',
+        help_text="Type of on-call duty"
     )
     claim = models.DecimalField(
         max_digits=5,

@@ -80,7 +80,9 @@ html {
                                     <span class="fw-medium">{{ tblock.calculated_hours|floatformat:2 }}</span>
                                 </div>
                                 <div style="width: 12%;">
-                                    {% if tblock.claim %}
+                                    {% if tblock.oncall_type == 'nhsp' %}
+                                        <span class="badge bg-danger">NHSP</span>
+                                    {% elif tblock.claim %}
                                         <span class="fw-medium">{{ tblock.claim|floatformat:2 }}</span>
                                     {% else %}
                                         <span class="text-muted">-</span>

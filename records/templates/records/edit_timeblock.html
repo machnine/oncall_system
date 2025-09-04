@@ -22,6 +22,23 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">On-Call Type</label>
+                        <div class="form-check-container">
+                            {% for choice in form.oncall_type %}
+                                <div class="form-check form-check-inline">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.oncall_type.errors %}
+                            <div class="text-danger">{{ form.oncall_type.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <label for="{{ form.claim.id_for_label }}" class="form-label mb-0">Total Claim Hours</label>
                             <div class="d-flex flex-wrap gap-2" role="group">
@@ -164,10 +181,97 @@
 
 {% block extra_js %}
 <script>
+// OnCall Type functionality - disable claim field for NHSP
+let previousOncallType = null;
+
+function toggleClaimField(showPrompt = true) {
+    const oncallTypeInputs = document.querySelectorAll('input[name="oncall_type"]');
+    const claimField = document.querySelector('input[name="claim"]');
+    const claimButtons = document.querySelectorAll('button[onclick^="setClaimHours"]');
+    const claimContainer = claimField.closest('.mb-3');
+    
+    let currentOncallType = null;
+    oncallTypeInputs.forEach(input => {
+        if (input.checked) {
+            currentOncallType = input.value;
+        }
+    });
+    
+    // Check if switching from Normal to NHSP with existing claim hours
+    if (showPrompt && previousOncallType === 'normal' && currentOncallType === 'nhsp' && claimField.value.trim() !== '') {
+        const confirmClear = confirm(
+            'Switching to NHSP will clear the current claim hours (' + claimField.value + ').\n\n' +
+            'NHSP blocks are claimed differently outside of this system.\n\n' +
+            'Do you want to continue?'
+        );
+        
+        if (!confirmClear) {
+            // User cancelled - revert to previous selection
+            oncallTypeInputs.forEach(input => {
+                if (input.value === previousOncallType) {
+                    input.checked = true;
+                } else {
+                    input.checked = false;
+                }
+            });
+            return; // Exit without making changes
+        }
+    }
+    
+    // Update the previous type for next time
+    previousOncallType = currentOncallType;
+    
+    if (currentOncallType === 'nhsp') {
+        // Disable claim field and buttons for NHSP
+        claimField.disabled = true;
+        claimField.value = '';
+        claimField.style.backgroundColor = '#f8f9fa';
+        claimButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+        });
+        // Add visual indication
+        if (claimContainer) {
+            claimContainer.style.opacity = '0.6';
+        }
+    } else {
+        // Enable claim field and buttons for Normal
+        claimField.disabled = false;
+        claimField.style.backgroundColor = '';
+        claimButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+        });
+        // Remove visual indication
+        if (claimContainer) {
+            claimContainer.style.opacity = '1';
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial state without showing prompt
+    const oncallTypeInputs = document.querySelectorAll('input[name="oncall_type"]');
+    oncallTypeInputs.forEach(input => {
+        if (input.checked) {
+            previousOncallType = input.value;
+        }
+    });
+    toggleClaimField(false); // Don't show prompt on initial load
+    
+    // Add event listeners to oncall type radio buttons
+    oncallTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            toggleClaimField(true); // Show prompt for user changes
+        });
+    });
+});
+
 // Claim hours functionality
 function setClaimHours(hours) {
     const claimField = document.querySelector('input[name="claim"]');
-    if (claimField) {
+    if (claimField && !claimField.disabled) {
         claimField.value = hours;
         claimField.focus();
     }
