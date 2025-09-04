@@ -29,6 +29,13 @@
                         </a>
                         {% if user.is_staff %}
                             <a class="nav-link"
+                               href="{% url 'signoff_management' %}"
+                               title="Monthly Sign-offs"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="bottom">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            <a class="nav-link"
                                href="{% url 'monthly_report' %}"
                                title="Reports"
                                data-bs-toggle="tooltip"
@@ -77,18 +84,40 @@
                 </div>
             </div>
         </nav>
-        <div class="container mt-4">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <!-- Floating alerts container -->
+        {% if messages %}
+            <div class="position-fixed w-100" style="top: 60px; z-index: 1050; pointer-events: none;">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6 col-md-7 col-sm-8">
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-2 shadow" role="alert" style="pointer-events: auto;">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                {% endfor %}
-            {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="container mt-4">
             {% block content %}
             {% endblock content %}
         </div>
+        
+        <!-- Footer -->
+        <footer class="bg-light mt-5 py-4 border-top">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <p class="text-muted mb-0">On-Call Records</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
         // Auto-dismiss alerts after 3 seconds with smooth fade

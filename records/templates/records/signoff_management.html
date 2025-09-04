@@ -1,0 +1,194 @@
+{% extends 'records/base.html' %}
+
+{% block title %}Monthly Sign-Off Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4><i class="bi bi-check-circle"></i> Monthly Sign-Off Management</h4>
+                <div class="d-flex align-items-center gap-3">
+                    {% include 'records/partials/month_selector.html' %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if staff_signoff_status %}
+                    <div class="table-responsive">
+                        <table id="signoffTable" class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="cursor: pointer;" onclick="sortTable(0)">
+                                        Staff <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                    <th style="cursor: pointer;" onclick="sortTable(1)">
+                                        Time Blocks <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                    <th style="cursor: pointer;" onclick="sortTable(2)">
+                                        Total Hours <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                    <th style="cursor: pointer;" onclick="sortTable(3)">
+                                        Total Claims <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                    <th style="cursor: pointer;" onclick="sortTable(4)">
+                                        Status <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for status in staff_signoff_status %}
+                                <tr class="{% if status.is_signed_off %}table-success{% else %}table-warning{% endif %}">
+                                    <td>
+                                        <strong>{{ status.staff.assignment_id }}</strong><br>
+                                        <a href="{% url 'admin_user_dashboard' status.staff.user.id %}?month={{ selected_month.month }}&year={{ selected_month.year }}" class="text-decoration-none">
+                                            <small>{{ status.staff.user.get_full_name }}</small>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ status.time_blocks_count }} blocks</span>
+                                    </td>
+                                    <td>{{ status.total_hours|floatformat:2 }}h</td>
+                                    <td>{{ status.total_claims|floatformat:2 }}</td>
+                                    <td>
+                                        {% if status.is_signed_off %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Signed Off
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                By {{ status.signoff.signed_off_by.assignment_id }} on {{ status.signoff.signed_off_at|date:"d/m/Y H:i" }}
+                                            </small>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-clock"></i> Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if status.is_signed_off %}
+                                            <!-- Remove Sign-off button -->
+                                            <form method="post" action="{% url 'unsignoff_month' status.signoff.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                        onclick="return confirm('Are you sure you want to remove this sign-off? This will allow editing of records again.')">
+                                                    <i class="bi bi-x-circle"></i> Remove Sign-off
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <!-- Sign off button -->
+                                            <a href="{% url 'signoff_month' status.staff.id selected_month.year selected_month.month %}" 
+                                               class="btn btn-success btn-sm">
+                                                <i class="bi bi-check-circle"></i> Sign Off
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        No staff members have submitted time blocks for {{ selected_month|date:"F Y" }}.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Sign-Off Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>What happens when a month is signed off?</h6>
+                        <ul class="small">
+                            <li>Staff can no longer edit, create, or delete time blocks for that month</li>
+                            <li>Staff can no longer edit, create, or delete time entries for that month</li>
+                            <li>The records become read-only and locked</li>
+                            <li>Only supervisors can remove sign-offs if needed</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Legend:</h6>
+                        <ul class="small">
+                            <li><span class="badge bg-success">Signed Off</span> - Month is locked, no editing allowed</li>
+                            <li><span class="badge bg-warning">Pending</span> - Month can still be edited by staff</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+    const table = document.getElementById('signoffTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort direction for this column
+    sortDirection[columnIndex] = !sortDirection[columnIndex];
+    const ascending = sortDirection[columnIndex];
+    
+    // Update header icons
+    const headers = table.querySelectorAll('th i');
+    headers.forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up';
+    });
+    
+    const currentIcon = table.querySelectorAll('th')[columnIndex].querySelector('i');
+    currentIcon.className = ascending ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let cellA, cellB;
+        
+        if (columnIndex === 0) { // Staff column - sort by assignment ID
+            cellA = a.cells[columnIndex].querySelector('strong').textContent.trim();
+            cellB = b.cells[columnIndex].querySelector('strong').textContent.trim();
+        } else if (columnIndex === 1) { // Time Blocks column - extract number from badge
+            cellA = parseInt(a.cells[columnIndex].querySelector('.badge').textContent.match(/\d+/)[0]);
+            cellB = parseInt(b.cells[columnIndex].querySelector('.badge').textContent.match(/\d+/)[0]);
+        } else if (columnIndex === 2 || columnIndex === 3) { // Hours/Claims columns - numeric
+            cellA = parseFloat(a.cells[columnIndex].textContent.replace('h', '').trim()) || 0;
+            cellB = parseFloat(b.cells[columnIndex].textContent.replace('h', '').trim()) || 0;
+        } else if (columnIndex === 4) { // Status column - sort by badge text
+            cellA = a.cells[columnIndex].querySelector('.badge').textContent.trim();
+            cellB = b.cells[columnIndex].querySelector('.badge').textContent.trim();
+        } else {
+            cellA = a.cells[columnIndex].textContent.trim();
+            cellB = b.cells[columnIndex].textContent.trim();
+        }
+        
+        // Numeric comparison for numeric columns
+        if (columnIndex === 1 || columnIndex === 2 || columnIndex === 3) {
+            return ascending ? cellA - cellB : cellB - cellA;
+        } else { // Text comparison for other columns
+            return ascending ? 
+                cellA.localeCompare(cellB) : 
+                cellB.localeCompare(cellA);
+        }
+    });
+    
+    // Clear tbody and append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Default sort by Staff ID on page load
+document.addEventListener('DOMContentLoaded', function() {
+    sortTable(0);
+});
+</script>
+{% endblock %}

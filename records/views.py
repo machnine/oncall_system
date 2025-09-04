@@ -2,9 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
-from .models import OnCallStaff, TimeBlock, TimeEntry
+from .models import OnCallStaff, TimeBlock, TimeEntry, MonthlySignOff, MonthlyReportSignOff
 from .forms import TimeBlockForm, TimeBlockEditForm, TimeEntryForm
-from .utils.decorators import require_oncall_staff, require_staff_permission
+from .utils.decorators import require_oncall_staff, require_staff_permission, check_month_not_signed_off, check_timeblock_not_signed_off
 from .utils.date_helpers import (
     get_month_date_range,
     build_month_context,
@@ -51,18 +51,24 @@ def dashboard(request):
     # Build month context using utility function
     month_context = build_month_context(month, year)
 
+    # Check if the current month is signed off
+    month_signoff = MonthlySignOff.get_signoff_for_month(staff, year, month)
+    
     # Combine with view-specific context
     context = {
         "staff": staff,
         "time_blocks": time_blocks,
         "total_hours": total_hours,
         "total_claims": total_claims,
+        "month_signoff": month_signoff,
+        "is_month_signed_off": month_signoff is not None,
         **month_context,  # Merge month navigation context
     }
     return render(request, "records/dashboard.html", context)
 
 
 @require_oncall_staff
+@check_timeblock_not_signed_off
 def add_timeblock(request):
     """Add a new block"""
     staff = request.staff
@@ -84,6 +90,7 @@ def add_timeblock(request):
 
 
 @require_oncall_staff
+@check_month_not_signed_off
 def add_time_entry(request, block_id):
     """Add a time entry to a block"""
     staff = request.staff
@@ -108,6 +115,7 @@ def add_time_entry(request, block_id):
 
 
 @require_oncall_staff
+@check_month_not_signed_off
 def edit_time_entry(request, entry_id):
     """Edit a time entry"""
     staff = request.staff
@@ -134,6 +142,7 @@ def edit_time_entry(request, entry_id):
 
 
 @require_oncall_staff
+@check_month_not_signed_off
 def delete_time_entry(request, entry_id):
     """Delete a time entry"""
     staff = request.staff
@@ -156,6 +165,7 @@ def delete_time_entry(request, entry_id):
 
 
 @require_oncall_staff
+@check_month_not_signed_off
 def edit_timeblock(request, block_id):
     """Edit a block"""
     staff = request.staff
@@ -183,6 +193,7 @@ def edit_timeblock(request, block_id):
 
 
 @require_oncall_staff
+@check_month_not_signed_off
 def delete_timeblock(request, block_id):
     """Delete a block and all its time entries"""
     staff = request.staff
@@ -264,6 +275,30 @@ def monthly_report(request):
             else:
                 current_date = current_date.replace(month=current_date.month + 1)
 
+    # Check if this report is signed off
+    report_signoff = MonthlyReportSignOff.get_report_signoff(year, month)
+    is_report_signed_off = report_signoff is not None
+    
+    # Calculate grand totals for the report
+    grand_total_hours = sum(report['total_hours'] for report in staff_reports)
+    grand_total_claims = sum(report['total_claims'] for report in staff_reports)
+    
+    # Check individual staff sign-off status
+    staff_signoff_summary = None
+    if staff_reports:
+        all_staff_with_records = {report['staff'] for report in staff_reports}
+        signed_off_staff = set()
+        for staff in all_staff_with_records:
+            if MonthlySignOff.is_month_signed_off(staff, year, month):
+                signed_off_staff.add(staff)
+        
+        staff_signoff_summary = {
+            'total_staff': len(all_staff_with_records),
+            'signed_off_count': len(signed_off_staff),
+            'pending_count': len(all_staff_with_records) - len(signed_off_staff),
+            'all_signed_off': len(signed_off_staff) == len(all_staff_with_records)
+        }
+    
     # Build month context using utility function
     month_context = build_month_context(month, year)
 
@@ -271,6 +306,11 @@ def monthly_report(request):
         "staff_reports": staff_reports,
         "report_month": report_date,
         "available_months": available_months,
+        "report_signoff": report_signoff,
+        "is_report_signed_off": is_report_signed_off,
+        "grand_total_hours": grand_total_hours,
+        "grand_total_claims": grand_total_claims,
+        "staff_signoff_summary": staff_signoff_summary,
         **month_context,  # Merge month navigation context
     }
     return render(request, "records/monthly_report.html", context)
@@ -285,6 +325,8 @@ def export_monthly_csv(request):
 
     # Get month/year from GET parameters with validation
     month, year = get_safe_month_year_from_request(request)
+    
+    # Allow export regardless of sign-off status
 
     # Calculate date range for selected month
     report_date, next_month_start = get_month_date_range(year, month)
@@ -429,3 +471,281 @@ def admin_user_dashboard(request, user_id):
         **month_context,  # Merge month navigation context
     }
     return render(request, "records/admin_user_dashboard.html", context)
+
+
+@require_staff_permission
+def signoff_management(request):
+    """Sign-off management dashboard showing pending months for all staff"""
+    
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
+    
+    # Calculate date range for selected month
+    current_month_start, next_month_start = get_month_date_range(year, month)
+    
+    # Get all staff and their sign-off status for the selected month
+    staff_signoff_status = []
+    
+    for staff in OnCallStaff.objects.all().select_related('user'):
+        # Check if this staff member has any time blocks for the selected month
+        time_blocks = TimeBlock.objects.filter(
+            staff=staff,
+            date__gte=current_month_start,
+            date__lt=next_month_start
+        )
+        
+        if time_blocks.exists():
+            # Calculate totals for this month
+            total_hours = sum(
+                sum(entry.hours for entry in tb.time_entries.all()) 
+                for tb in time_blocks.prefetch_related('time_entries')
+            )
+            total_claims = sum(tb.claim for tb in time_blocks if tb.claim)
+            
+            # Check sign-off status
+            signoff = MonthlySignOff.get_signoff_for_month(staff, year, month)
+            
+            staff_signoff_status.append({
+                'staff': staff,
+                'time_blocks_count': time_blocks.count(),
+                'total_hours': total_hours,
+                'total_claims': total_claims,
+                'is_signed_off': signoff is not None,
+                'signoff': signoff,
+            })
+    
+    # Build month context using utility function
+    month_context = build_month_context(month, year)
+    
+    context = {
+        'staff_signoff_status': staff_signoff_status,
+        'selected_month': current_month_start,
+        **month_context,
+    }
+    return render(request, 'records/signoff_management.html', context)
+
+
+@require_staff_permission  
+def signoff_month(request, staff_id, year, month):
+    """Sign off a specific month for a specific staff member"""
+    
+    staff = get_object_or_404(OnCallStaff, id=staff_id)
+    
+    # Check if already signed off
+    if MonthlySignOff.is_month_signed_off(staff, year, month):
+        messages.warning(request, f'Month {month}/{year} for {staff.assignment_id} is already signed off.')
+        return redirect('signoff_management')
+    
+    # Check if staff has any time blocks for this month
+    current_month_start, next_month_start = get_month_date_range(year, month)
+    time_blocks = TimeBlock.objects.filter(
+        staff=staff,
+        date__gte=current_month_start,
+        date__lt=next_month_start
+    )
+    
+    if not time_blocks.exists():
+        messages.error(request, f'No time blocks found for {staff.assignment_id} in {month}/{year}.')
+        return redirect('signoff_management')
+    
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '')
+        
+        # Get the signing user's staff record
+        try:
+            signing_staff = OnCallStaff.objects.get(user=request.user)
+        except OnCallStaff.DoesNotExist:
+            messages.error(request, 'You must be registered as on-call staff to sign off months.')
+            return redirect('signoff_management')
+        
+        # Create the sign-off record
+        MonthlySignOff.objects.create(
+            staff=staff,
+            year=year,
+            month=month,
+            signed_off_by=signing_staff,
+            notes=notes
+        )
+        
+        from calendar import month_name
+        messages.success(
+            request, 
+            f'Successfully signed off {month_name[month]} {year} for {staff.assignment_id}.'
+        )
+        return redirect('signoff_management')
+    
+    # GET request - show confirmation page
+    # Calculate totals for display
+    time_blocks_with_totals = time_blocks.prefetch_related('time_entries')
+    total_hours = sum(
+        sum(entry.hours for entry in tb.time_entries.all()) 
+        for tb in time_blocks_with_totals
+    )
+    total_claims = sum(tb.claim for tb in time_blocks if tb.claim)
+    
+    from calendar import month_name
+    context = {
+        'staff': staff,
+        'year': year,
+        'month': month,
+        'month_name': month_name[month],
+        'time_blocks': time_blocks,
+        'time_blocks_count': time_blocks.count(),
+        'total_hours': total_hours,
+        'total_claims': total_claims,
+    }
+    return render(request, 'records/signoff_confirm.html', context)
+
+
+@require_staff_permission
+def unsignoff_month(request, signoff_id):
+    """Remove a sign-off (admin only)"""
+    
+    signoff = get_object_or_404(MonthlySignOff, id=signoff_id)
+    
+    if request.method == 'POST':
+        staff_name = signoff.staff.assignment_id
+        month_name = signoff.month_name
+        year = signoff.year
+        
+        signoff.delete()
+        
+        messages.success(
+            request,
+            f'Successfully removed sign-off for {staff_name} - {month_name} {year}.'
+        )
+    else:
+        messages.error(request, 'Invalid request method.')
+    
+    return redirect('signoff_management')
+
+
+@require_staff_permission
+def signoff_report(request, year, month):
+    """Sign off an entire monthly report for submission"""
+    
+    # Check if report is already signed off
+    if MonthlyReportSignOff.is_report_signed_off(year, month):
+        messages.warning(request, f'Monthly report for {month}/{year} is already signed off.')
+        return redirect('monthly_report')
+    
+    # Calculate date range
+    current_month_start, next_month_start = get_month_date_range(year, month)
+    
+    # Get all staff and their data for this month
+    staff_reports = []
+    for staff in OnCallStaff.objects.all().select_related('user'):
+        time_blocks = TimeBlock.objects.filter(
+            staff=staff,
+            date__gte=current_month_start,
+            date__lt=next_month_start
+        ).prefetch_related('time_entries__task', 'time_entries__work_mode')
+        
+        if time_blocks.exists():
+            # Calculate totals by day type
+            totals = {
+                'Weekday': {'hours': 0.0, 'claims': 0.0},
+                'Saturday': {'hours': 0.0, 'claims': 0.0},
+                'Sunday': {'hours': 0.0, 'claims': 0.0},
+                'BankHoliday': {'hours': 0.0, 'claims': 0.0},
+            }
+            
+            for tb in time_blocks:
+                block_hours = sum(entry.hours for entry in tb.time_entries.all())
+                block_claims = float(tb.claim) if tb.claim else 0
+                day_type_name = tb.day_type.name if tb.day_type else 'Weekday'
+                totals[day_type_name]['hours'] += block_hours
+                totals[day_type_name]['claims'] += block_claims
+            
+            # Calculate grand totals
+            total_hours = sum(t['hours'] for t in totals.values())
+            total_claims = sum(t['claims'] for t in totals.values())
+            
+            staff_reports.append({
+                'staff': staff,
+                'blocks': time_blocks,
+                'totals': totals,
+                'total_hours': total_hours,
+                'total_claims': total_claims,
+                'is_signed_off': MonthlySignOff.is_month_signed_off(staff, year, month)
+            })
+    
+    if not staff_reports:
+        messages.error(request, f'No time blocks found for {month}/{year}.')
+        return redirect('monthly_report')
+    
+    # Check if all individual staff records are signed off
+    unsigned_staff = [r for r in staff_reports if not r['is_signed_off']]
+    
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '')
+        
+        # Get the signing user's staff record
+        try:
+            signing_staff = OnCallStaff.objects.get(user=request.user)
+        except OnCallStaff.DoesNotExist:
+            messages.error(request, 'You must be registered as on-call staff to sign off reports.')
+            return redirect('monthly_report')
+        
+        # Calculate totals
+        total_staff_count = len(staff_reports)
+        grand_total_hours = sum(r['total_hours'] for r in staff_reports)
+        grand_total_claims = sum(r['total_claims'] for r in staff_reports)
+        
+        # Create the report sign-off record
+        MonthlyReportSignOff.objects.create(
+            year=year,
+            month=month,
+            signed_off_by=signing_staff,
+            notes=notes,
+            total_staff_count=total_staff_count,
+            total_hours=grand_total_hours,
+            total_claims=grand_total_claims
+        )
+        
+        from calendar import month_name
+        messages.success(
+            request, 
+            f'Successfully signed off monthly report for {month_name[month]} {year}.'
+        )
+        return redirect('monthly_report')
+    
+    # GET request - show confirmation page
+    grand_total_hours = sum(r['total_hours'] for r in staff_reports)
+    grand_total_claims = sum(r['total_claims'] for r in staff_reports)
+    signed_off_count = len(staff_reports) - len(unsigned_staff)
+    
+    from calendar import month_name
+    context = {
+        'year': year,
+        'month': month,
+        'month_name': month_name[month],
+        'staff_reports': staff_reports,
+        'total_staff_count': len(staff_reports),
+        'grand_total_hours': grand_total_hours,
+        'grand_total_claims': grand_total_claims,
+        'unsigned_staff': unsigned_staff,
+        'signed_off_count': signed_off_count,
+        'all_staff_signed_off': len(unsigned_staff) == 0,
+    }
+    return render(request, 'records/report_signoff_confirm.html', context)
+
+
+@require_staff_permission
+def unsignoff_report(request, year, month):
+    """Remove a report sign-off (admin only)"""
+    
+    report_signoff = get_object_or_404(MonthlyReportSignOff, year=year, month=month)
+    
+    if request.method == 'POST':
+        from calendar import month_name
+        report_signoff.delete()
+        
+        messages.success(
+            request,
+            f'Successfully removed report sign-off for {month_name[month]} {year}.'
+        )
+    else:
+        messages.error(request, 'Invalid request method.')
+    
+    return redirect('monthly_report')

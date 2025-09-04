@@ -12,4 +12,9 @@ urlpatterns = [
     path('report/', views.monthly_report, name='monthly_report'),
     path('report/export/', views.export_monthly_csv, name='export_monthly_csv'),
     path('staff/user/<int:user_id>/', views.admin_user_dashboard, name='admin_user_dashboard'),
+    path('signoff/', views.signoff_management, name='signoff_management'),
+    path('signoff/<int:staff_id>/<int:year>/<int:month>/', views.signoff_month, name='signoff_month'),
+    path('unsignoff/<int:signoff_id>/', views.unsignoff_month, name='unsignoff_month'),
+    path('report/signoff/<int:year>/<int:month>/', views.signoff_report, name='signoff_report'),
+    path('report/unsignoff/<int:year>/<int:month>/', views.unsignoff_report, name='unsignoff_report'),
 ]

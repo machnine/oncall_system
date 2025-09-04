@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, TaskType, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment
+from .models import OnCallStaff, WorkMode, TaskType, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment, MonthlySignOff, MonthlyReportSignOff
 
 
 @admin.register(OnCallStaff)
@@ -140,3 +140,58 @@ class TimeEntryAdmin(admin.ModelAdmin):
     def get_hours(self, obj):
         return obj.hours
     get_hours.short_description = 'Hours'
+
+
+@admin.register(MonthlySignOff)
+class MonthlySignOffAdmin(admin.ModelAdmin):
+    list_display = ('staff', 'year', 'month', 'month_name', 'signed_off_by', 'signed_off_at', 'get_records_count')
+    list_filter = ('year', 'month', 'signed_off_by', 'signed_off_at')
+    search_fields = ('staff__assignment_id', 'staff__user__username', 'signed_off_by__assignment_id')
+    date_hierarchy = 'signed_off_at'
+    ordering = ['-year', '-month', 'staff__assignment_id']
+    
+    fields = ('staff', 'year', 'month', 'signed_off_by', 'notes')
+    readonly_fields = ('signed_off_at',)
+    
+    def get_records_count(self, obj):
+        """Show how many time blocks were signed off for this month"""
+        from .models import TimeBlock
+        count = TimeBlock.objects.filter(
+            staff=obj.staff,
+            date__year=obj.year,
+            date__month=obj.month
+        ).count()
+        return f"{count} time blocks"
+    get_records_count.short_description = 'Records'
+    
+    def save_model(self, request, obj, form, change):
+        # Auto-set the signed_off_by field to the current user's staff record
+        if not change:  # Only for new records
+            try:
+                from .models import OnCallStaff
+                obj.signed_off_by = OnCallStaff.objects.get(user=request.user)
+            except OnCallStaff.DoesNotExist:
+                pass
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(MonthlyReportSignOff)
+class MonthlyReportSignOffAdmin(admin.ModelAdmin):
+    list_display = ('year', 'month', 'month_name', 'signed_off_by', 'signed_off_at', 'total_staff_count', 'total_hours', 'total_claims')
+    list_filter = ('year', 'month', 'signed_off_by', 'signed_off_at')
+    search_fields = ('signed_off_by__assignment_id',)
+    date_hierarchy = 'signed_off_at'
+    ordering = ['-year', '-month']
+    
+    fields = ('year', 'month', 'signed_off_by', 'notes', 'total_staff_count', 'total_hours', 'total_claims')
+    readonly_fields = ('signed_off_at',)
+    
+    def save_model(self, request, obj, form, change):
+        # Auto-set the signed_off_by field to the current user's staff record
+        if not change:  # Only for new records
+            try:
+                from .models import OnCallStaff
+                obj.signed_off_by = OnCallStaff.objects.get(user=request.user)
+            except OnCallStaff.DoesNotExist:
+                pass
+        super().save_model(request, obj, form, change)

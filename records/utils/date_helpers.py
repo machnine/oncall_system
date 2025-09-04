@@ -33,18 +33,21 @@ def get_month_date_range(year, month):
 def get_month_navigation(month, year):
     """
     Get previous and next month/year for navigation.
+    Does not allow navigation beyond current month.
     
     Args:
         month (int): Current month (1-12)
         year (int): Current year
         
     Returns:
-        tuple: (prev_month, prev_year, next_month, next_year)
+        tuple: (prev_month, prev_year, next_month, next_year, can_go_next)
         
     Example:
-        prev_m, prev_y, next_m, next_y = get_month_navigation(1, 2025)
-        # Returns (12, 2024, 2, 2025)
+        prev_m, prev_y, next_m, next_y, can_next = get_month_navigation(1, 2025)
+        # Returns (12, 2024, 2, 2025, True/False)
     """
+    today = timezone.now().date()
+    
     # Previous month
     if month == 1:
         prev_month, prev_year = 12, year - 1
@@ -56,8 +59,11 @@ def get_month_navigation(month, year):
         next_month, next_year = 1, year + 1
     else:
         next_month, next_year = month + 1, year
+    
+    # Check if we can go to next month (don't allow beyond current month)
+    can_go_next = (next_year < today.year) or (next_year == today.year and next_month <= today.month)
         
-    return prev_month, prev_year, next_month, next_year
+    return prev_month, prev_year, next_month, next_year, can_go_next
 
 
 def build_month_context(month, year):
@@ -77,7 +83,7 @@ def build_month_context(month, year):
     """
     today = timezone.now().date()
     current_month_start, _ = get_month_date_range(year, month)
-    prev_month, prev_year, next_month, next_year = get_month_navigation(month, year)
+    prev_month, prev_year, next_month, next_year, can_go_next = get_month_navigation(month, year)
     
     # Get available years based on actual block data (will be imported when used)
     from ..models import TimeBlock
@@ -88,6 +94,8 @@ def build_month_context(month, year):
         # Ensure current year is included
         if today.year not in available_years:
             available_years.append(today.year)
+        # Only include years up to current year
+        available_years = [y for y in available_years if y <= today.year]
         available_years.sort()
     else:
         # If no blocks exist yet, at least show current year
@@ -101,6 +109,7 @@ def build_month_context(month, year):
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
+        'can_go_next': can_go_next,
         'is_current_month': (month == today.month and year == today.year),
         'available_years': available_years,
     }

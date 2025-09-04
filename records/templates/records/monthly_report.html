@@ -17,6 +17,51 @@
     </div>
 </div>
 
+<!-- Report Sign-off Status Banner -->
+{% if is_report_signed_off %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="bi bi-file-earmark-check me-2"></i>
+            <div>
+                <strong>Report Signed Off:</strong> This monthly report was signed off by {{ report_signoff.signed_off_by.assignment_id }} 
+                on {{ report_signoff.signed_off_at|date:"d/m/Y H:i" }} and is ready for submission.
+                {% if report_signoff.notes %}
+                    <br><small class="text-muted">Notes: {{ report_signoff.notes }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% elif staff_signoff_summary %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-warning d-flex align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>Report Pending Sign-off:</strong> 
+                    {{ staff_signoff_summary.signed_off_count }}/{{ staff_signoff_summary.total_staff }} staff records signed off.
+                    {% if not staff_signoff_summary.all_signed_off %}
+                        {{ staff_signoff_summary.pending_count }} staff member{{ staff_signoff_summary.pending_count|pluralize }} still pending.
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                {% if staff_signoff_summary.all_signed_off %}
+                    <a href="{% url 'signoff_report' report_month.year report_month.month %}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-check"></i> Sign Off Report
+                    </a>
+                {% else %}
+                    <a href="{% url 'signoff_management' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-check-circle"></i> Manage Individual Sign-offs
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Simple Tabular Report -->
 {% if staff_reports %}
@@ -53,11 +98,7 @@
                         {% for staff_report in staff_reports %}
                             <tr>
                                 <td><strong>{{ staff_report.staff.assignment_id }}</strong></td>
-                                <td>
-                                    <a href="{% url 'admin_user_dashboard' staff_report.staff.user.id %}" class="text-decoration-none">
-                                        {{ staff_report.staff.user.last_name }}, {{ staff_report.staff.user.first_name }}
-                                    </a>
-                                </td>
+                                <td>{{ staff_report.staff.user.last_name }}, {{ staff_report.staff.user.first_name }}</td>
                                 <td class="text-center">{{ staff_report.totals.Weekday.claims|floatformat:2 }}</td>
                                 <td class="text-center">{{ staff_report.totals.Saturday.claims|floatformat:2 }}</td>
                                 <td class="text-center">{{ staff_report.totals.Sunday.claims|floatformat:2 }}</td>
@@ -119,12 +160,24 @@
     <!-- Action Buttons -->
     <div class="row mt-4">
         <div class="col-12 text-center">
+            <!-- Always show export and print options -->
             <a href="{% url 'export_monthly_csv' %}?month={{ current_month_num }}&year={{ current_year }}" class="btn btn-primary me-2">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
             </a>
             <button class="btn btn-success" onclick="window.print()">
                 <i class="bi bi-printer"></i> Print Report
             </button>
+            
+            {% if is_report_signed_off %}
+                <!-- Remove sign-off button for admins -->
+                <form method="post" action="{% url 'unsignoff_report' report_month.year report_month.month %}" class="d-inline ms-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                            onclick="return confirm('Are you sure you want to remove this report sign-off? This will unlock the report for editing.')">
+                        <i class="bi bi-x-circle"></i> Remove Sign-off
+                    </button>
+                </form>
+            {% endif %}
         </div>
     </div>
 {% else %}

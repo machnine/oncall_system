@@ -1,3 +1,10 @@
+<style>
+/* Prevent layout shift when scrollbar appears/disappears */
+html {
+    overflow-y: scroll;
+}
+</style>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5>
@@ -16,8 +23,8 @@
                 <button id="toggleAllBlocks"
                         class="btn btn-outline-dark border-0 {% if not is_admin_view and is_current_month %}ms-2{% endif %}"
                         data-bs-toggle="tooltip"
-                        title="Expand all blocks">
-                    <i class="bi bi-caret-down-fill"></i>
+                        title="Collapse all blocks">
+                    <i class="bi bi-caret-up-fill"></i>
                 </button>
             {% endif %}
         </div>
@@ -31,10 +38,11 @@
                 <div style="width: 18%;">Time Span</div>
                 <div style="width: 10%;">Hours</div>
                 <div style="width: 12%;">Claim Hours</div>
+                <div style="width: 16%;">Assignments</div>
                 {% if not is_admin_view %}
-                    <div style="width: 28%;" class="text-end">Actions</div>
+                    <div style="width: 12%;" class="text-end">Actions</div>
                 {% else %}
-                    <div style="width: 28%;"></div>
+                    <div style="width: 12%;"></div>
                 {% endif %}
             </div>
             <!-- Blocks Container -->
@@ -78,8 +86,24 @@
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </div>
+                                <!-- Assignments in header -->
+                                <div style="width: 16%;">
+                                    {% if tblock.assignments.all %}
+                                        <div class="d-flex align-items-center flex-wrap">
+                                            {% for assignment in tblock.assignments.all %}
+                                                <span class="badge bg-{{ assignment.display_color }} me-1 mb-1 d-flex align-items-center"
+                                                      style="font-size: 0.7rem">
+                                                    <i class="{{ assignment.display_icon }} me-1"></i>
+                                                    {{ assignment.entity_id }}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </div>
                                 {% if not is_admin_view %}
-                                    <div style="width: 28%;" class="text-end">
+                                    <div style="width: 12%;" class="text-end">
                                         <div class="btn-group block-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
                                             <a href="{% url 'add_time_entry' tblock.id %}"
                                                class="btn btn-sm btn-outline-success border-0"
@@ -102,26 +126,9 @@
                                         </div>
                                     </div>
                                 {% else %}
-                                    <div style="width: 28%;"></div>
+                                    <div style="width: 12%;"></div>
                                 {% endif %}
                             </div>
-                            <!-- Assignments Section - Same width as block header -->
-                            {% if tblock.assignments.all %}
-                                <div class="assignments-section border-bottom"
-                                     style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f8f9fa{% else %}#ffffff{% endif %}">
-                                    <div class="assignments-container d-flex align-items-center py-2 px-3">
-                                        <div class="d-flex align-items-center">                                            
-                                            {% for assignment in tblock.assignments.all %}
-                                                <span class="badge bg-{{ assignment.display_color }} me-2 d-flex align-items-center">
-                                                    <i class="{{ assignment.display_icon }} me-1"></i>
-                                                    {{ assignment.entity_id }}
-                                                </span>
-                                                {% if assignment.notes %}<small class="text-muted me-3">({{ assignment.notes }})</small>{% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
                             <!-- Time Entries Section -->
                             <div class="collapse show" id="block-{{ tblock.id }}">
                                 {% if tblock.time_entries.all %}

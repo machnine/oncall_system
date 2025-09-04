@@ -67,33 +67,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle toggle all blocks
     var toggleAllBtn = document.getElementById('toggleAllBlocks');
     if (toggleAllBtn) {
-        var allExpanded = false; // Default state is collapsed
         
         toggleAllBtn.addEventListener('click', function() {
             var blockCollapses = document.querySelectorAll('[id^="block-"]');
             var toggleIcon = this.querySelector('i');
             
-            if (allExpanded) {
-                // Collapse all
+            // Use the button's current icon state to determine action
+            var isCurrentlyShowingCollapseIcon = toggleIcon.classList.contains('bi-caret-up-fill');
+            
+            if (isCurrentlyShowingCollapseIcon) {
+                // Button is showing "collapse" icon, so collapse ALL
                 blockCollapses.forEach(function(collapse) {
-                    var bsCollapse = new bootstrap.Collapse(collapse, {show: false});
+                    var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapse);
                     bsCollapse.hide();
                 });
-                toggleIcon.className = 'bi bi-caret-down-fill';
-                this.setAttribute('data-original-title', 'Expand all blocks');
+                toggleIcon.className = 'bi bi-caret-down-fill';                
                 this.setAttribute('title', 'Expand all blocks');
-                allExpanded = false;
             } else {
-                // Expand all
+                // Button is showing "expand" icon, so expand ALL
                 blockCollapses.forEach(function(collapse) {
-                    var bsCollapse = new bootstrap.Collapse(collapse, {show: true});
+                    var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapse);
                     bsCollapse.show();
                 });
-                toggleIcon.className = 'bi bi-caret-up-fill';
-                this.setAttribute('data-original-title', 'Collapse all blocks');
+                toggleIcon.className = 'bi bi-caret-up-fill';                
                 this.setAttribute('title', 'Collapse all blocks');
-                allExpanded = true;
             }
+            
+            // Update Bootstrap tooltip
+            var existingTooltip = bootstrap.Tooltip.getInstance(this);
+            if (existingTooltip) {
+                existingTooltip.dispose();
+            }
+            new bootstrap.Tooltip(this);
         });
     }
 });

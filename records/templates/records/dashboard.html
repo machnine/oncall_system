@@ -15,6 +15,25 @@
             </div>
         </div>
     </div>
+    
+    <!-- Sign-off Status Banner -->
+    {% if is_month_signed_off %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="bi bi-lock-fill me-2"></i>
+                <div>
+                    <strong>Month Signed Off:</strong> This month was signed off by {{ month_signoff.signed_off_by.assignment_id }} 
+                    on {{ month_signoff.signed_off_at|date:"d/m/Y" }}. Records cannot be modified.
+                    {% if month_signoff.notes %}
+                        <br><small class="text-muted">Notes: {{ month_signoff.notes }}</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     {% include "records/partials/stats_cards.html" %}
     {% with is_admin_view=False %}
         {% include "records/partials/timeblocks_table.html" %}
