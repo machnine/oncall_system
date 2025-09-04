@@ -2,12 +2,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
-from .models import OnCallStaff, TimeBlock, TimeEntry, MonthlySignOff, MonthlyReportSignOff
+from .models import OnCallStaff, TimeBlock, TimeEntry, MonthlySignOff, MonthlyReportSignOff, RotaEntry, RotaShift
 from .forms import TimeBlockForm, TimeBlockEditForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission, check_month_not_signed_off, check_timeblock_not_signed_off
 from .utils.date_helpers import (
     get_month_date_range,
     build_month_context,
+    build_rota_month_context,
     get_safe_month_year_from_request,
 )
 
@@ -749,3 +750,76 @@ def unsignoff_report(request, year, month):
         messages.error(request, 'Invalid request method.')
     
     return redirect('monthly_report')
+
+
+@require_staff_permission
+def rota_calendar(request):
+    """Display monthly rota calendar"""
+    import calendar
+    from datetime import date, timedelta
+    
+    # Get month/year from GET parameters with validation
+    month, year = get_safe_month_year_from_request(request)
+    
+    # Calculate date range for selected month
+    current_month_start, next_month_start = get_month_date_range(year, month)
+    
+    # Generate calendar for the month
+    cal = calendar.monthcalendar(year, month)
+    
+    # Get all rota entries for this month
+    rota_entries = RotaEntry.objects.filter(
+        date__gte=current_month_start,
+        date__lt=next_month_start
+    ).prefetch_related('shifts__staff').order_by('date')
+    
+    # Create a dictionary for quick lookup of rota entries by date
+    rota_by_date = {entry.date: entry for entry in rota_entries}
+    
+    # Build calendar data with rota information
+    calendar_weeks = []
+    for week in cal:
+        week_data = []
+        for day_num in week:
+            if day_num == 0:
+                # Empty cell for days outside current month
+                week_data.append(None)
+            else:
+                day_date = date(year, month, day_num)
+                rota_entry = rota_by_date.get(day_date)
+                
+                # Get day info
+                day_data = {
+                    'date': day_date,
+                    'day_num': day_num,
+                    'is_today': day_date == date.today(),
+                    'is_weekend': day_date.weekday() >= 5,
+                    'rota_entry': rota_entry,
+                    'shifts': rota_entry.get_shifts_by_type() if rota_entry else {'normal': [], 'nhsp': []},
+                    'is_bank_holiday': False,
+                }
+                
+                # Check if bank holiday
+                if rota_entry:
+                    day_data['is_bank_holiday'] = rota_entry.is_bank_holiday
+                else:
+                    from .utils.bank_holidays import is_bank_holiday
+                    day_data['is_bank_holiday'] = is_bank_holiday(day_date)
+                
+                week_data.append(day_data)
+        
+        calendar_weeks.append(week_data)
+    
+    # Build month context for rota (allows future months)
+    month_context = build_rota_month_context(month, year)
+    
+    # Get all staff for potential assignment
+    all_staff = OnCallStaff.objects.all().select_related('user').order_by('assignment_id')
+    
+    context = {
+        'calendar_weeks': calendar_weeks,
+        'all_staff': all_staff,
+        **month_context,
+    }
+    
+    return render(request, 'records/rota_calendar.html', context)

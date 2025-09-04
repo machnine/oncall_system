@@ -1,13 +1,13 @@
 {% extends 'records/base.html' %}
 
-{% block title %}Monthly Sign-Off Management{% endblock %}
+{% block title %}Monthly Claim Management{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h4><i class="bi bi-check-circle"></i> Monthly Sign-Off Management</h4>
+                <h4><i class="bi bi-check-circle"></i> Monthly Claim Management</h4>
                 <div class="d-flex align-items-center gap-3">
                     {% include 'records/partials/month_selector.html' %}
                 </div>
@@ -18,22 +18,22 @@
                         <table id="signoffTable" class="table table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="cursor: pointer;" onclick="sortTable(0)">
+                                    <th style="cursor: pointer;" onclick="sortTable(0)" width="15%">
                                         Staff <i class="bi bi-arrow-down-up"></i>
                                     </th>
-                                    <th style="cursor: pointer;" onclick="sortTable(1)">
+                                    <th style="cursor: pointer;" onclick="sortTable(1)" width="15%">
                                         Time Blocks <i class="bi bi-arrow-down-up"></i>
                                     </th>
-                                    <th style="cursor: pointer;" onclick="sortTable(2)">
+                                    <th style="cursor: pointer;" onclick="sortTable(2)" width="15%">
                                         Total Hours <i class="bi bi-arrow-down-up"></i>
                                     </th>
-                                    <th style="cursor: pointer;" onclick="sortTable(3)">
+                                    <th style="cursor: pointer;" onclick="sortTable(3)" width="15%">
                                         Total Claims <i class="bi bi-arrow-down-up"></i>
                                     </th>
-                                    <th style="cursor: pointer;" onclick="sortTable(4)">
+                                    <th style="cursor: pointer;" onclick="sortTable(4)" width="25%">
                                         Status <i class="bi bi-arrow-down-up"></i>
                                     </th>
-                                    <th>Actions</th>
+                                    <th width="15%">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -48,7 +48,7 @@
                                     <td>
                                         <span class="badge bg-info">{{ status.time_blocks_count }} blocks</span>
                                     </td>
-                                    <td>{{ status.total_hours|floatformat:2 }}h</td>
+                                    <td>{{ status.total_hours|floatformat:2 }}</td>
                                     <td>{{ status.total_claims|floatformat:2 }}</td>
                                     <td>
                                         {% if status.is_signed_off %}
@@ -72,7 +72,7 @@
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-outline-danger btn-sm" 
                                                         onclick="return confirm('Are you sure you want to remove this sign-off? This will allow editing of records again.')">
-                                                    <i class="bi bi-x-circle"></i> Remove Sign-off
+                                                    <i class="bi bi-x-circle"></i> Remove
                                                 </button>
                                             </form>
                                         {% else %}

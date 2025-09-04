@@ -17,4 +17,5 @@ urlpatterns = [
     path('unsignoff/<int:signoff_id>/', views.unsignoff_month, name='unsignoff_month'),
     path('report/signoff/<int:year>/<int:month>/', views.signoff_report, name='signoff_report'),
     path('report/unsignoff/<int:year>/<int:month>/', views.unsignoff_report, name='unsignoff_report'),
+    path('rota/', views.rota_calendar, name='rota_calendar'),
 ]

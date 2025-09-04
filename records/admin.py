@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OnCallStaff, WorkMode, TaskType, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment, MonthlySignOff, MonthlyReportSignOff
+from .models import OnCallStaff, WorkMode, TaskType, DayType, Detail, TimeBlock, TimeEntry, Donor, Recipient, LabTask, Assignment, MonthlySignOff, MonthlyReportSignOff, RotaEntry, RotaShift
 
 
 @admin.register(OnCallStaff)
@@ -173,6 +173,55 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
             except OnCallStaff.DoesNotExist:
                 pass
         super().save_model(request, obj, form, change)
+
+
+class RotaShiftInline(admin.TabularInline):
+    model = RotaShift
+    extra = 0
+    fields = ('staff', 'seniority_level', 'shift_type', 'notes')
+    autocomplete_fields = ['staff']
+
+
+@admin.register(RotaEntry)
+class RotaEntryAdmin(admin.ModelAdmin):
+    list_display = ('date', 'day_type', 'get_shift_count', 'get_staff_list', 'is_bank_holiday')
+    list_filter = ('date', 'shifts__shift_type', 'shifts__seniority_level')
+    search_fields = ('date', 'shifts__staff__assignment_id', 'shifts__staff__user__username')
+    date_hierarchy = 'date'
+    ordering = ['-date']
+    inlines = [RotaShiftInline]
+    
+    def get_shift_count(self, obj):
+        return obj.shifts.count()
+    get_shift_count.short_description = 'Total Shifts'
+    
+    def get_staff_list(self, obj):
+        staff_list = []
+        for shift in obj.shifts.all()[:3]:  # Show first 3 staff
+            shift_info = f"{shift.staff.assignment_id} ({shift.get_seniority_level_display()})"
+            if shift.shift_type == 'nhsp':
+                shift_info += " [NHSP]"
+            staff_list.append(shift_info)
+        
+        if obj.shifts.count() > 3:
+            staff_list.append(f"... +{obj.shifts.count() - 3} more")
+        
+        return ", ".join(staff_list) if staff_list else "No staff assigned"
+    get_staff_list.short_description = 'Staff Assigned'
+
+
+@admin.register(RotaShift)
+class RotaShiftAdmin(admin.ModelAdmin):
+    list_display = ('rota_entry', 'staff', 'seniority_level', 'shift_type', 'get_day_type', 'created')
+    list_filter = ('seniority_level', 'shift_type', 'rota_entry__date', 'created')
+    search_fields = ('staff__assignment_id', 'staff__user__username', 'rota_entry__date')
+    date_hierarchy = 'rota_entry__date'
+    ordering = ['-rota_entry__date', 'seniority_level', 'staff__assignment_id']
+    autocomplete_fields = ['staff']
+    
+    def get_day_type(self, obj):
+        return obj.rota_entry.day_type
+    get_day_type.short_description = 'Day Type'
 
 
 @admin.register(MonthlyReportSignOff)

@@ -147,3 +147,55 @@ def get_safe_month_year_from_request(request):
     except (ValueError, TypeError):
         # Invalid parameters, return current month/year
         return today.month, today.year
+
+
+def build_rota_month_context(month, year):
+    """
+    Build month navigation context for rota templates that allows future months.
+    
+    Args:
+        month (int): The month (1-12)
+        year (int): The year
+        
+    Returns:
+        dict: Context dictionary with month navigation data (allows future navigation)
+        
+    Example:
+        context = build_rota_month_context(9, 2025)
+        # Returns dict with current_month, prev_month, etc. (allows future months)
+    """
+    today = timezone.now().date()
+    current_month_start, _ = get_month_date_range(year, month)
+    prev_month, prev_year, next_month, next_year, _ = get_month_navigation(month, year)
+    
+    # For rota, we allow unlimited future navigation
+    can_go_next = True
+    
+    # Get available years based on actual rota data (will be imported when used)
+    from ..models import RotaEntry
+    available_years = []
+    rota_years = RotaEntry.objects.dates('date', 'year')
+    if rota_years:
+        available_years = [d.year for d in rota_years]
+        # Ensure current and next year are included for future rota planning
+        if today.year not in available_years:
+            available_years.append(today.year)
+        if today.year + 1 not in available_years:
+            available_years.append(today.year + 1)
+        available_years.sort()
+    else:
+        # If no rota entries exist yet, show current and next year
+        available_years = [today.year, today.year + 1]
+    
+    return {
+        'current_month': current_month_start.strftime('%B %Y'),
+        'current_month_num': month,
+        'current_year': year,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'can_go_next': can_go_next,  # Always True for rota
+        'is_current_month': (month == today.month and year == today.year),
+        'available_years': available_years,
+    }
