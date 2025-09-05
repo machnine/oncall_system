@@ -89,7 +89,6 @@
     cursor: default;
     overflow: visible;
     min-width: 60px;
-    margin-bottom: 2px;
 }
 
 /* Staff delete button styles */
@@ -114,16 +113,6 @@
 
 .staff-entry:hover .staff-delete-btn {
     opacity: 1;
-}
-
-/* Rota row border styles */
-.rota-day .rota-row {
-    /* border-bottom: 1px solid #ff0000 !important; */
-    margin-bottom: 2px !important;
-}
-
-.rota-day .rota-row:last-child {
-    border-bottom: none !important;
 }
 
 /* Context menu styles */
