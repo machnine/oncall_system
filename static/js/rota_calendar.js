@@ -11,7 +11,8 @@ class RotaCalendar {
         this.currentDay = null;
         this.currentSeniorityLevel = null;
         this.currentSeniorityName = null;
-        this.contextMenu = document.getElementById('contextMenu');
+        this.dateContextMenu = document.getElementById('dateContextMenu');
+        this.staffContextMenu = document.getElementById('staffContextMenu');
         
         this.init();
     }
@@ -86,8 +87,8 @@ class RotaCalendar {
     }
 
     showDateManagementMenu(x, y) {
-        // Position and show context menu for date management only
-        const rect = this.contextMenu.getBoundingClientRect();
+        // Position and show date context menu
+        const rect = this.dateContextMenu.getBoundingClientRect();
         
         // Prevent menu from going off-screen
         if (x + rect.width > window.innerWidth) {
@@ -97,16 +98,17 @@ class RotaCalendar {
             y = window.innerHeight - rect.height - 10;
         }
         
-        this.contextMenu.style.left = x + 'px';
-        this.contextMenu.style.top = y + 'px';
-        this.contextMenu.style.display = 'block';
+        this.dateContextMenu.style.left = x + 'px';
+        this.dateContextMenu.style.top = y + 'px';
+        this.dateContextMenu.style.display = 'block';
         
-        this.updateDateManagementMenu();
+        // Update the NHSP toggle text
+        this.updateDateMenuText();
     }
 
     showStaffSelectionMenu(x, y) {
-        // Position and show context menu for staff selection
-        const rect = this.contextMenu.getBoundingClientRect();
+        // Position and show staff context menu
+        const rect = this.staffContextMenu.getBoundingClientRect();
         
         // Prevent menu from going off-screen
         if (x + rect.width > window.innerWidth) {
@@ -116,32 +118,33 @@ class RotaCalendar {
             y = window.innerHeight - rect.height - 10;
         }
         
-        this.contextMenu.style.left = x + 'px';
-        this.contextMenu.style.top = y + 'px';
-        this.contextMenu.style.display = 'block';
+        this.staffContextMenu.style.left = x + 'px';
+        this.staffContextMenu.style.top = y + 'px';
+        this.staffContextMenu.style.display = 'block';
         
-        this.updateContextMenu();
+        // Update the header and populate staff list
+        this.updateStaffMenu();
     }
 
     attachContextMenuHandlers() {
-        // Shift type toggle
-        document.getElementById('toggle-shift-type').addEventListener('click', (e) => {
+        // Date context menu handlers
+        document.getElementById('date-toggle-shift-type').addEventListener('click', (e) => {
             e.preventDefault();
             this.toggleShiftType();
         });
 
-        // Clear day
-        document.getElementById('clear-day').addEventListener('click', (e) => {
+        document.getElementById('date-clear-day').addEventListener('click', (e) => {
             e.preventDefault();
             this.clearDay();
         });
     }
 
     attachDocumentHandlers() {
-        // Hide context menu when clicking elsewhere
+        // Hide context menus when clicking elsewhere
         document.addEventListener('click', (e) => {
-            if (!this.contextMenu.contains(e.target)) {
-                this.contextMenu.style.display = 'none';
+            if (!this.dateContextMenu.contains(e.target) && !this.staffContextMenu.contains(e.target)) {
+                this.dateContextMenu.style.display = 'none';
+                this.staffContextMenu.style.display = 'none';
             }
         });
     }
@@ -176,76 +179,38 @@ class RotaCalendar {
             `;
             deleteBtn.title = 'Remove staff from rota';
             staffSpan.appendChild(deleteBtn);
+        } else {
+            // Ensure existing delete button has correct styling
+            deleteBtn.style.opacity = '0';
         }
 
+        // Remove any existing event listeners to avoid duplicates
+        const newStaffSpan = staffSpan.cloneNode(true);
+        staffSpan.parentNode.replaceChild(newStaffSpan, staffSpan);
+        
+        // Get the delete button from the new span
+        const newDeleteBtn = newStaffSpan.querySelector('.staff-delete-btn');
+        
         // Add hover events to show/hide delete button
-        staffSpan.addEventListener('mouseenter', () => {
-            deleteBtn.style.opacity = '1';
+        newStaffSpan.addEventListener('mouseenter', () => {
+            newDeleteBtn.style.opacity = '1';
         });
         
-        staffSpan.addEventListener('mouseleave', () => {
-            deleteBtn.style.opacity = '0';
+        newStaffSpan.addEventListener('mouseleave', () => {
+            newDeleteBtn.style.opacity = '0';
         });
         
-        // Add click event to delete button (remove existing listeners first)
-        const newDeleteBtn = deleteBtn.cloneNode(true);
-        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
-        
+        // Add click event to delete button
         newDeleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const shiftId = staffSpan.dataset.shiftId;
-            this.removeStaffFromRota(shiftId, staffSpan);
+            const shiftId = newStaffSpan.dataset.shiftId;
+            this.removeStaffFromRota(shiftId, newStaffSpan);
         });
     }
 
-    updateContextMenu() {
+    updateDateMenuText() {
         const shiftType = this.currentDay.dataset.shiftType;
-        const shiftTypeToggle = document.getElementById('toggle-shift-type');
-        const shiftTypeText = document.getElementById('shift-type-text');
-        const seniorityNameSpan = document.getElementById('seniority-name');
-        const dropdownHeader = seniorityNameSpan.closest('.dropdown-header');
-        const dropdownDivider = dropdownHeader.nextElementSibling;
-        const clearDayButton = document.getElementById('clear-day');
-        const lastDivider = clearDayButton.previousElementSibling;
-        
-        // Show the header and divider for staff selection
-        dropdownHeader.style.display = 'block';
-        dropdownDivider.style.display = 'block';
-        
-        // Hide day management options in staff selection menu
-        shiftTypeToggle.style.display = 'none';
-        clearDayButton.style.display = 'none';
-        lastDivider.style.display = 'none';
-        
-        // Update seniority name in header
-        seniorityNameSpan.textContent = this.currentSeniorityName;
-        
-        // Populate staff list for the specific seniority level
-        this.populateStaffList();
-    }
-
-    updateDateManagementMenu() {
-        const shiftType = this.currentDay.dataset.shiftType;
-        const shiftTypeText = document.getElementById('shift-type-text');
-        const seniorityNameSpan = document.getElementById('seniority-name');
-        const staffListContainer = document.getElementById('staff-list');
-        const dropdownHeader = seniorityNameSpan.closest('.dropdown-header');
-        const dropdownDivider = dropdownHeader.nextElementSibling;
-        const shiftTypeToggle = document.getElementById('toggle-shift-type');
-        const clearDayButton = document.getElementById('clear-day');
-        const lastDivider = clearDayButton.previousElementSibling;
-        
-        // Hide the header and divider for date management
-        dropdownHeader.style.display = 'none';
-        dropdownDivider.style.display = 'none';
-        
-        // Show day management options
-        shiftTypeToggle.style.display = 'block';
-        clearDayButton.style.display = 'block';
-        lastDivider.style.display = 'block';
-        
-        // Hide staff list for date management menu
-        staffListContainer.innerHTML = '';
+        const shiftTypeText = document.getElementById('date-shift-type-text');
         
         // Update shift type toggle text
         if (shiftType === 'nhsp') {
@@ -253,6 +218,16 @@ class RotaCalendar {
         } else {
             shiftTypeText.textContent = 'Set NHSP';
         }
+    }
+
+    updateStaffMenu() {
+        const seniorityNameSpan = document.getElementById('seniority-name');
+        
+        // Update seniority name in header
+        seniorityNameSpan.textContent = this.currentSeniorityName;
+        
+        // Populate staff list for the specific seniority level
+        this.populateStaffList();
     }
 
     populateStaffList() {
@@ -320,7 +295,7 @@ class RotaCalendar {
             await this.performStaffAddition(staff);
         }
         
-        this.contextMenu.style.display = 'none';
+        this.staffContextMenu.style.display = 'none';
     }
 
     async createRotaEntry() {
@@ -387,7 +362,7 @@ class RotaCalendar {
                     <div class="px-1 pb-1">
                         <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="trainee" data-seniority-name="Trainee"></div>
                         <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="oncall" data-seniority-name="On-Call"></div>
-                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="senior" data-seniority-name="Senior"></div>
+                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="senior" data-seniority-name="Senior Cover"></div>
                     </div>
                 </div>
             `;
@@ -460,7 +435,7 @@ class RotaCalendar {
             alert('An error occurred while toggling shift type');
         }
         
-        this.contextMenu.style.display = 'none';
+        this.dateContextMenu.style.display = 'none';
     }
 
     async removeStaffFromRota(shiftId, staffSpan) {
@@ -540,7 +515,7 @@ class RotaCalendar {
                 alert('An error occurred while clearing the day');
             }
         }
-        this.contextMenu.style.display = 'none';
+        this.dateContextMenu.style.display = 'none';
     }
 
     updateDayDOM(data) {
