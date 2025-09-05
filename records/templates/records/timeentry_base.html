@@ -1,4 +1,4 @@
-{% extends 'records/base.html' %}
+{% extends "records/base.html" %}
 {% block title %}
     {% block entry_title %}
     {% endblock entry_title %}
@@ -54,17 +54,15 @@
                             <span class="form-text ms-3">{{ form.detail_text.help_text }}</span>
                             {{ form.detail_text }}
                             {% if form.detail_text.errors %}<div class="text-danger">{{ form.detail_text.errors }}</div>{% endif %}
-                            
                         </div>
-                        </div>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            {% block back_button %}
-                            {% endblock back_button %}
-                            {% block submit_button %}
-                            {% endblock submit_button %}
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        {% block back_button %}
+                        {% endblock back_button %}
+                        {% block submit_button %}
+                        {% endblock submit_button %}
+                    </div>
+                </form>
             </div>
         </div>
     </div>

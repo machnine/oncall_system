@@ -1,127 +1,146 @@
-{% extends 'records/base.html' %}
-
-{% block title %}Confirm Sign-Off - {{ staff.assignment_id }} {{ month_name }} {{ year }}{% endblock %}
-
+{% extends "records/base.html" %}
+{% block title %}
+    Confirm Sign-Off - {{ staff.assignment_id }} {{ month_name }} {{ year }}
+{% endblock title %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="bi bi-exclamation-triangle text-warning"></i> Confirm Monthly Sign-Off</h4>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-warning">
-                    <i class="bi bi-info-circle"></i>
-                    <strong>Important:</strong> Once signed off, {{ staff.assignment_id }} will no longer be able to edit any time blocks or entries for {{ month_name }} {{ year }}.
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>
+                        <i class="bi bi-exclamation-triangle text-warning"></i> Confirm Monthly Sign-Off
+                    </h4>
                 </div>
-
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h5>Staff Details</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <td><strong>Staff ID:</strong></td>
-                                <td>{{ staff.assignment_id }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Name:</strong></td>
-                                <td>{{ staff.user.get_full_name }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Month:</strong></td>
-                                <td>{{ month_name }} {{ year }}</td>
-                            </tr>
-                        </table>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Important:</strong> Once signed off, {{ staff.assignment_id }} will no longer be able to edit any time blocks or entries for {{ month_name }} {{ year }}.
                     </div>
-                    <div class="col-md-6">
-                        <h5>Summary</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <td><strong>Time Blocks:</strong></td>
-                                <td><span class="badge bg-info">{{ time_blocks_count }}</span></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Total Hours:</strong></td>
-                                <td>{{ total_hours|floatformat:2 }}h</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Total Claims:</strong></td>
-                                <td>£{{ total_claims|floatformat:2 }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <h5>Time Blocks for {{ month_name }} {{ year }}</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
-                            <thead class="table-light">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Staff Details</h5>
+                            <table class="table table-sm">
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Day Type</th>
-                                    <th>Time Entries</th>
-                                    <th>Hours</th>
-                                    <th>Claim</th>
-                                    <th>Assignments</th>
+                                    <td>
+                                        <strong>Staff ID:</strong>
+                                    </td>
+                                    <td>{{ staff.assignment_id }}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {% for tb in time_blocks %}
                                 <tr>
-                                    <td>{{ tb.date|date:"d/m/Y" }}</td>
                                     <td>
-                                        <span class="badge bg-{{ tb.day_type.color }}">{{ tb.day_type.name }}</span>
+                                        <strong>Name:</strong>
                                     </td>
-                                    <td>{{ tb.time_entries.count }}</td>
+                                    <td>{{ staff.user.get_full_name }}</td>
+                                </tr>
+                                <tr>
                                     <td>
-                                        {% with total_hours=0 %}
-                                        {% for entry in tb.time_entries.all %}
-                                            {% with total_hours=total_hours|add:entry.hours %}{% endwith %}
-                                        {% endfor %}
-                                        {{ total_hours|floatformat:2 }}h
-                                        {% endwith %}
+                                        <strong>Month:</strong>
+                                    </td>
+                                    <td>{{ month_name }} {{ year }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Summary</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>
+                                        <strong>Time Blocks:</strong>
                                     </td>
                                     <td>
-                                        {% if tb.claim %}£{{ tb.claim|floatformat:2 }}{% else %}-{% endif %}
-                                    </td>
-                                    <td>
-                                        {% if tb.assignments.count > 0 %}
-                                            {% for assignment in tb.assignments.all %}
-                                                <span class="badge bg-{{ assignment.display_color }} me-1">
-                                                    <i class="{{ assignment.display_icon }}"></i> {{ assignment.entity_id }}
-                                                </span>
-                                            {% endfor %}
-                                        {% else %}
-                                            <span class="text-muted">None</span>
-                                        {% endif %}
+                                        <span class="badge bg-info">{{ time_blocks_count }}</span>
                                     </td>
                                 </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                <tr>
+                                    <td>
+                                        <strong>Total Hours:</strong>
+                                    </td>
+                                    <td>{{ total_hours|floatformat:2 }}h</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong>Total Claims:</strong>
+                                    </td>
+                                    <td>£{{ total_claims|floatformat:2 }}</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
-                </div>
-
-                <form method="post">
-                    {% csrf_token %}
                     <div class="mb-3">
-                        <label for="notes" class="form-label">Notes (Optional)</label>
-                        <textarea name="notes" id="notes" class="form-control" rows="3" 
-                                  placeholder="Add any notes about this sign-off..."></textarea>
+                        <h5>Time Blocks for {{ month_name }} {{ year }}</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Day Type</th>
+                                        <th>Time Entries</th>
+                                        <th>Hours</th>
+                                        <th>Claim</th>
+                                        <th>Assignments</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tb in time_blocks %}
+                                        <tr>
+                                            <td>{{ tb.date|date:"d/m/Y" }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ tb.day_type.color }}">{{ tb.day_type.name }}</span>
+                                            </td>
+                                            <td>{{ tb.time_entries.count }}</td>
+                                            <td>
+                                                {% with total_hours=0 %}
+                                                    {% for entry in tb.time_entries.all %}
+                                                        {% with total_hours=total_hours|add:entry.hours %}{% endwith %}
+                                                    {% endfor %}
+                                                    {{ total_hours|floatformat:2 }}h
+                                                {% endwith %}
+                                            </td>
+                                            <td>
+                                                {% if tb.claim %}
+                                                    £{{ tb.claim|floatformat:2 }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if tb.assignments.count > 0 %}
+                                                    {% for assignment in tb.assignments.all %}
+                                                        <span class="badge bg-{{ assignment.display_color }} me-1">
+                                                            <i class="{{ assignment.display_icon }}"></i> {{ assignment.entity_id }}
+                                                        </span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="text-muted">None</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'signoff_management' %}?month={{ month }}&year={{ year }}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Confirm Sign-Off
-                        </button>
-                    </div>
-                </form>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes (Optional)</label>
+                            <textarea name="notes"
+                                      id="notes"
+                                      class="form-control"
+                                      rows="3"
+                                      placeholder="Add any notes about this sign-off..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'signoff_management' %}?month={{ month }}&year={{ year }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Confirm Sign-Off
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+{% endblock content %}

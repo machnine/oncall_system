@@ -1,4 +1,4 @@
-{% extends 'records/base.html' %}
+{% extends "records/base.html" %}
 {% block title %}
     Monthly Report - {{ report_month|date:"F Y" }}
 {% endblock title %}
@@ -10,7 +10,7 @@
                     <h2>
                         <i class="bi bi-file-earmark-spreadsheet"></i> Monthly Report
                     </h2>
-                    <div class="ms-3">{% include 'records/partials/month_selector.html' %}</div>
+                    <div class="ms-3">{% include "records/partials/month_selector.html" %}</div>
                 </div>
             </div>
         </div>

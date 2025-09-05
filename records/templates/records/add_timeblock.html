@@ -1,6 +1,6 @@
-{% extends 'records/base.html' %}
+{% extends "records/base.html" %}
 
-{% block title %}Add New Time Block{% endblock %}
+{% block title %}Add New Time Block{% endblock title %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -155,7 +155,7 @@
     </div>
 </div>
 
-{% endblock %}
+{% endblock content %}
 
 {% block extra_js %}
 <script>
@@ -409,4 +409,4 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Assignment management initialized');
 });
 </script>
-{% endblock %}
+{% endblock extra_js %}

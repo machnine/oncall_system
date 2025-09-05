@@ -1,186 +1,171 @@
-{% extends 'records/base.html' %}
-
-{% block title %}Edit Time Block{% endblock title %}
-
+{% extends "records/base.html" %}
+{% block title %}
+    Edit Time Block
+{% endblock title %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-pencil"></i> Edit Time Block</h5>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.date.id_for_label }}" class="form-label">Block Date</label>
-                        {{ form.date }}
-                        {% if form.date.errors %}
-                            <div class="text-danger">{{ form.date.errors }}</div>
-                        {% endif %}                        
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">On-Call Type</label>
-                        <div class="form-check-container">
-                            {% for choice in form.oncall_type %}
-                                <div class="form-check form-check-inline">
-                                    {{ choice.tag }}
-                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
-                                        {{ choice.choice_label }}
-                                    </label>
-                                </div>
-                            {% endfor %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>
+                        <i class="bi bi-pencil"></i> Edit Time Block
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.date.id_for_label }}" class="form-label">Block Date</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}<div class="text-danger">{{ form.date.errors }}</div>{% endif %}
                         </div>
-                        {% if form.oncall_type.errors %}
-                            <div class="text-danger">{{ form.oncall_type.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <label for="{{ form.claim.id_for_label }}" class="form-label mb-0">Total Claim Hours</label>
-                            <div class="d-flex flex-wrap gap-2" role="group">
-                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.25)">15m</button>
-                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.5)">30m</button>
-                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(1)">1h</button>
-                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(2)">2h</button>
-                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(3)">3h</button>
+                        <div class="mb-3">
+                            <label class="form-label">On-Call Type</label>
+                            <div class="form-check-container">
+                                {% for choice in form.oncall_type %}
+                                    <div class="form-check form-check-inline">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                                    </div>
+                                {% endfor %}
                             </div>
+                            {% if form.oncall_type.errors %}<div class="text-danger">{{ form.oncall_type.errors }}</div>{% endif %}
                         </div>
-                        {{ form.claim }}
-                        {% if form.claim.errors %}
-                            <div class="text-danger">{{ form.claim.errors }}</div>
-                        {% endif %}                        
-                    </div>
-
-                    <!-- Assignment Section -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="bi bi-person-check"></i> Assignments (Optional)</h6>
-                        </div>
-                        <div class="card-body">
-                            <!-- Current Assignments List -->
-                            <div id="current-assignments" class="mb-3">
-                                <h6 class="small text-muted mb-2">Current Assignments:</h6>
-                                <div id="assignments-list" class="border rounded p-2 bg-light">
-                                    <div id="no-assignments" class="text-muted small">No assignments added yet.</div>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label for="{{ form.claim.id_for_label }}" class="form-label mb-0">Total Claim Hours</label>
+                                <div class="d-flex flex-wrap gap-2" role="group">
+                                    <button type="button"
+                                            class="btn btn-outline-success btn-sm rounded-pill px-3"
+                                            onclick="setClaimHours(0.25)">15m</button>
+                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(0.5)">
+                                        30m
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(1)">1h</button>
+                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(2)">2h</button>
+                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="setClaimHours(3)">3h</button>
                                 </div>
                             </div>
-
-                            <!-- Add New Assignment -->
-                            <div class="border rounded p-3 bg-white">
-                                <h6 class="small text-primary mb-3">Add Assignment:</h6>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label for="{{ form.assignment_type.id_for_label }}" class="form-label">Type</label>
-                                            {{ form.assignment_type }}
-                                            {% if form.assignment_type.errors %}
-                                                <div class="text-danger">{{ form.assignment_type.errors }}</div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="{{ form.entity_id.id_for_label }}" class="form-label">Entity ID</label>
-                                            {{ form.entity_id }}
-                                            {% if form.entity_id.errors %}
-                                                <div class="text-danger">{{ form.entity_id.errors }}</div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="mb-3">
-                                            <label class="form-label">&nbsp;</label>
-                                            <button type="button" id="add-assignment-btn" class="btn btn-success btn-sm d-block">
-                                                <i class="bi bi-plus"></i> Add
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Recent items sections (shown/hidden by JavaScript) -->
-                                <div id="recent-donors" class="mb-3" style="display: block;">
-                                    <label class="form-label small text-muted">Recent Donors (click to select):</label>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        {% for donor in form.recent_donors %}
-                                            <button type="button" class="btn btn-outline-success btn-sm recent-item-btn" 
-                                                    onclick="selectEntity('{{ donor.donor_id|escapejs }}')">
-                                                {{ donor.donor_id }}{% if donor.name %} ({{ donor.name }}){% endif %}
-                                            </button>
-                                        {% empty %}
-                                            <span class="text-muted">No recent donors</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-
-                                <div id="recent-recipients" class="mb-3" style="display: none;">
-                                    <label class="form-label small text-muted">Recent Recipients (click to select):</label>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        {% for recipient in form.recent_recipients %}
-                                            <button type="button" class="btn btn-outline-info btn-sm recent-item-btn" 
-                                                    onclick="selectEntity('{{ recipient.recipient_id|escapejs }}')">
-                                                {{ recipient.recipient_id }}{% if recipient.name %} ({{ recipient.name }}){% endif %}
-                                            </button>
-                                        {% empty %}
-                                            <span class="text-muted">No recent recipients</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-
-                                <div id="recent-lab-tasks" class="mb-3" style="display: none;">
-                                    <label class="form-label small text-muted">Recent Lab Tasks (click to select):</label>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        {% for lab_task in form.recent_lab_tasks %}
-                                            <button type="button" class="btn btn-outline-warning btn-sm recent-item-btn" 
-                                                    onclick="selectEntity('{{ lab_task.name|escapejs }}')">
-                                                {{ lab_task.name }}{% if lab_task.description %} ({{ lab_task.description|truncatechars:20 }}){% endif %}
-                                            </button>
-                                        {% empty %}
-                                            <span class="text-muted">No recent lab tasks</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="{{ form.assignment_notes.id_for_label }}" class="form-label">Notes (Optional)</label>
-                                    {{ form.assignment_notes }}
-                                    {% if form.assignment_notes.errors %}
-                                        <div class="text-danger">{{ form.assignment_notes.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Hidden input to store assignments JSON -->
-                            <input type="hidden" id="assignments-data" name="assignments_data" value="">
+                            {{ form.claim }}
+                            {% if form.claim.errors %}<div class="text-danger">{{ form.claim.errors }}</div>{% endif %}
                         </div>
-                    </div>
-
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Note:</strong> This time block has {{ time_block.time_entries.count }} time entries. Changing the date will move all time entries to the new date.
-                    </div>
-                    
-                    
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
-                            <i class="bi bi-arrow-left"></i> Back
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Update
-                        </button>
-                    </div>
-                </form>
+                        <!-- Assignment Section -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-person-check"></i> Assignments (Optional)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Current Assignments List -->
+                                <div id="current-assignments" class="mb-3">
+                                    <h6 class="small text-muted mb-2">Current Assignments:</h6>
+                                    <div id="assignments-list" class="border rounded p-2 bg-light">
+                                        <div id="no-assignments" class="text-muted small">No assignments added yet.</div>
+                                    </div>
+                                </div>
+                                <!-- Add New Assignment -->
+                                <div class="border rounded p-3 bg-white">
+                                    <h6 class="small text-primary mb-3">Add Assignment:</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="{{ form.assignment_type.id_for_label }}" class="form-label">Type</label>
+                                                {{ form.assignment_type }}
+                                                {% if form.assignment_type.errors %}<div class="text-danger">{{ form.assignment_type.errors }}</div>{% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="{{ form.entity_id.id_for_label }}" class="form-label">Entity ID</label>
+                                                {{ form.entity_id }}
+                                                {% if form.entity_id.errors %}<div class="text-danger">{{ form.entity_id.errors }}</div>{% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">&nbsp;</label>
+                                                <button type="button" id="add-assignment-btn" class="btn btn-success btn-sm d-block">
+                                                    <i class="bi bi-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Recent items sections (shown/hidden by JavaScript) -->
+                                    <div id="recent-donors" class="mb-3" style="display: block;">
+                                        <label class="form-label small text-muted">Recent Donors (click to select):</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for donor in form.recent_donors %}
+                                                <button type="button"
+                                                        class="btn btn-outline-success btn-sm recent-item-btn"
+                                                        onclick="selectEntity('{{ donor.donor_id|escapejs }}')">
+                                                    {{ donor.donor_id }}
+                                                    {% if donor.name %}({{ donor.name }}){% endif %}
+                                                </button>
+                                            {% empty %}
+                                                <span class="text-muted">No recent donors</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div id="recent-recipients" class="mb-3" style="display: none;">
+                                        <label class="form-label small text-muted">Recent Recipients (click to select):</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for recipient in form.recent_recipients %}
+                                                <button type="button"
+                                                        class="btn btn-outline-info btn-sm recent-item-btn"
+                                                        onclick="selectEntity('{{ recipient.recipient_id|escapejs }}')">
+                                                    {{ recipient.recipient_id }}
+                                                    {% if recipient.name %}({{ recipient.name }}){% endif %}
+                                                </button>
+                                            {% empty %}
+                                                <span class="text-muted">No recent recipients</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div id="recent-lab-tasks" class="mb-3" style="display: none;">
+                                        <label class="form-label small text-muted">Recent Lab Tasks (click to select):</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for lab_task in form.recent_lab_tasks %}
+                                                <button type="button"
+                                                        class="btn btn-outline-warning btn-sm recent-item-btn"
+                                                        onclick="selectEntity('{{ lab_task.name|escapejs }}')">
+                                                    {{ lab_task.name }}
+                                                    {% if lab_task.description %}({{ lab_task.description|truncatechars:20 }}){% endif %}
+                                                </button>
+                                            {% empty %}
+                                                <span class="text-muted">No recent lab tasks</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="{{ form.assignment_notes.id_for_label }}" class="form-label">Notes (Optional)</label>
+                                        {{ form.assignment_notes }}
+                                        {% if form.assignment_notes.errors %}<div class="text-danger">{{ form.assignment_notes.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                                <!-- Hidden input to store assignments JSON -->
+                                <input type="hidden" id="assignments-data" name="assignments_data" value="">
+                            </div>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Note:</strong> This time block has {{ time_block.time_entries.count }} time entries. Changing the date will move all time entries to the new date.
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Update
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-{% block extra_js %}
-<script>
+    {% block extra_js %}
+        <script>
 // OnCall Type functionality - disable claim field for NHSP
 let previousOncallType = null;
 
@@ -519,7 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Assignment management initialized with', assignments.length, 'existing assignments');
 });
-</script>
-{% endblock %}
-
-{% endblock %}
+        </script>
+    {% endblock extra_js %}
+{% endblock content %}
