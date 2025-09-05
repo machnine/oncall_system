@@ -38,7 +38,6 @@ class RotaCalendar {
         this.initTooltips();
         
         // Setup event handlers
-        this.attachRotaRowEventHandlers();
         this.attachDayEventHandlers();
         this.attachContextMenuHandlers();
         this.attachDocumentHandlers();
@@ -54,46 +53,59 @@ class RotaCalendar {
         });
     }
 
-    attachRotaRowEventHandlers() {
-        document.querySelectorAll('.rota-row').forEach(rotaRow => {
-            // Remove existing event listener to avoid duplicates
-            rotaRow.removeEventListener('contextmenu', this.rotaRowContextHandler.bind(this));
-            // Attach new event listener
-            rotaRow.addEventListener('contextmenu', this.rotaRowContextHandler.bind(this));
-        });
-    }
-
-    rotaRowContextHandler(e) {
-        e.preventDefault();
-        e.stopPropagation(); // Prevent event from bubbling to day cell
-        
-        this.currentDay = e.target.closest('.rota-day');
-        this.currentSeniorityLevel = e.target.closest('.rota-row').dataset.seniority;
-        this.currentSeniorityName = e.target.closest('.rota-row').dataset.seniorityName;
-        
-        this.showContextMenu(e.pageX, e.pageY);
-    }
-
     attachDayEventHandlers() {
-        document.querySelectorAll('.rota-day').forEach(dayCell => {
-            // Add context menu to day header only (for NHSP toggle and clear day)
-            const dayHeader = dayCell.querySelector('.d-flex.justify-content-between.align-items-start.p-1');
-            if (dayHeader) {
-                dayHeader.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.currentDay = dayCell;
-                    this.currentSeniorityLevel = null;
-                    this.currentSeniorityName = 'Day Management';
-                    
-                    this.showDayManagementMenu(e.pageX, e.pageY);
-                });
-            }
+        // Add right-click context menu to date numbers for day management
+        document.querySelectorAll('.date-number').forEach(dateNumber => {
+            dateNumber.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const dayDiv = dateNumber.closest('.rota-day');
+                if (dayDiv) {
+                    this.currentDay = dayDiv;
+                    this.showDateManagementMenu(e.pageX, e.pageY);
+                }
+            });
+        });
+
+        // Add right-click context menu to seniority rows for staff selection
+        document.querySelectorAll('.rota-row').forEach(row => {
+            row.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const dayDiv = row.closest('.rota-day');
+                const seniorityLevel = row.dataset.seniority;
+                const seniorityName = row.dataset.seniorityName;
+                if (dayDiv && seniorityLevel) {
+                    this.currentDay = dayDiv;
+                    this.currentSeniorityLevel = seniorityLevel;
+                    this.currentSeniorityName = seniorityName;
+                    this.showStaffSelectionMenu(e.pageX, e.pageY);
+                }
+            });
         });
     }
 
-    showContextMenu(x, y) {
-        // Position the context menu
+    showDateManagementMenu(x, y) {
+        // Position and show context menu for date management only
+        const rect = this.contextMenu.getBoundingClientRect();
+        
+        // Prevent menu from going off-screen
+        if (x + rect.width > window.innerWidth) {
+            x = window.innerWidth - rect.width - 10;
+        }
+        if (y + rect.height > window.innerHeight) {
+            y = window.innerHeight - rect.height - 10;
+        }
+        
+        this.contextMenu.style.left = x + 'px';
+        this.contextMenu.style.top = y + 'px';
+        this.contextMenu.style.display = 'block';
+        
+        this.updateDateManagementMenu();
+    }
+
+    showStaffSelectionMenu(x, y) {
+        // Position and show context menu for staff selection
         const rect = this.contextMenu.getBoundingClientRect();
         
         // Prevent menu from going off-screen
@@ -109,25 +121,6 @@ class RotaCalendar {
         this.contextMenu.style.display = 'block';
         
         this.updateContextMenu();
-    }
-
-    showDayManagementMenu(x, y) {
-        // Position and show context menu for day management only
-        const rect = this.contextMenu.getBoundingClientRect();
-        
-        // Prevent menu from going off-screen
-        if (x + rect.width > window.innerWidth) {
-            x = window.innerWidth - rect.width - 10;
-        }
-        if (y + rect.height > window.innerHeight) {
-            y = window.innerHeight - rect.height - 10;
-        }
-        
-        this.contextMenu.style.left = x + 'px';
-        this.contextMenu.style.top = y + 'px';
-        this.contextMenu.style.display = 'block';
-        
-        this.updateDayManagementMenu();
     }
 
     attachContextMenuHandlers() {
@@ -210,31 +203,48 @@ class RotaCalendar {
         const shiftTypeToggle = document.getElementById('toggle-shift-type');
         const shiftTypeText = document.getElementById('shift-type-text');
         const seniorityNameSpan = document.getElementById('seniority-name');
+        const dropdownHeader = seniorityNameSpan.closest('.dropdown-header');
+        const dropdownDivider = dropdownHeader.nextElementSibling;
+        const clearDayButton = document.getElementById('clear-day');
+        const lastDivider = clearDayButton.previousElementSibling;
+        
+        // Show the header and divider for staff selection
+        dropdownHeader.style.display = 'block';
+        dropdownDivider.style.display = 'block';
+        
+        // Hide day management options in staff selection menu
+        shiftTypeToggle.style.display = 'none';
+        clearDayButton.style.display = 'none';
+        lastDivider.style.display = 'none';
         
         // Update seniority name in header
         seniorityNameSpan.textContent = this.currentSeniorityName;
-        
-        // Update shift type toggle text
-        if (shiftType === 'nhsp') {
-            shiftTypeText.textContent = 'Remove NHSP';
-        } else {
-            shiftTypeText.textContent = 'Set NHSP';
-        }
         
         // Populate staff list for the specific seniority level
         this.populateStaffList();
     }
 
-    updateDayManagementMenu() {
+    updateDateManagementMenu() {
         const shiftType = this.currentDay.dataset.shiftType;
         const shiftTypeText = document.getElementById('shift-type-text');
         const seniorityNameSpan = document.getElementById('seniority-name');
         const staffListContainer = document.getElementById('staff-list');
+        const dropdownHeader = seniorityNameSpan.closest('.dropdown-header');
+        const dropdownDivider = dropdownHeader.nextElementSibling;
+        const shiftTypeToggle = document.getElementById('toggle-shift-type');
+        const clearDayButton = document.getElementById('clear-day');
+        const lastDivider = clearDayButton.previousElementSibling;
         
-        // Update header
-        seniorityNameSpan.textContent = this.currentSeniorityName;
+        // Hide the header and divider for date management
+        dropdownHeader.style.display = 'none';
+        dropdownDivider.style.display = 'none';
         
-        // Hide staff list for day management menu
+        // Show day management options
+        shiftTypeToggle.style.display = 'block';
+        clearDayButton.style.display = 'block';
+        lastDivider.style.display = 'block';
+        
+        // Hide staff list for date management menu
         staffListContainer.innerHTML = '';
         
         // Update shift type toggle text
@@ -381,7 +391,7 @@ class RotaCalendar {
                     </div>
                 </div>
             `;
-            this.attachRotaRowEventHandlers();
+            this.attachDayEventHandlers();
         }
     }
 
