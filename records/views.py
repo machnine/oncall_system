@@ -3,7 +3,6 @@
 import calendar
 import csv
 import json
-from calendar import month_name
 from datetime import date, datetime
 
 from django.contrib import messages
@@ -594,7 +593,7 @@ def signoff_month(request, staff_id, year, month):
 
         messages.success(
             request,
-            f"Successfully signed off {month_name[month]} {year} for {staff.assignment_id}.",
+            f"Successfully signed off {calendar.month_name[month]} {year} for {staff.assignment_id}.",
         )
         return redirect("signoff_management")
 
@@ -610,7 +609,7 @@ def signoff_month(request, staff_id, year, month):
         "staff": staff,
         "year": year,
         "month": month,
-        "month_name": month_name[month],
+        "month_name": calendar.month_name[month],
         "time_blocks": time_blocks,
         "time_blocks_count": time_blocks.count(),
         "total_hours": total_hours,
@@ -733,7 +732,7 @@ def signoff_report(request, year, month):
 
         messages.success(
             request,
-            f"Successfully signed off monthly report for {month_name[month]} {year}.",
+            f"Successfully signed off monthly report for {calendar.month_name[month]} {year}.",
         )
         return redirect("monthly_report")
 
@@ -745,7 +744,7 @@ def signoff_report(request, year, month):
     context = {
         "year": year,
         "month": month,
-        "month_name": month_name[month],
+        "month_name": calendar.month_name[month],
         "staff_reports": staff_reports,
         "total_staff_count": len(staff_reports),
         "grand_total_hours": grand_total_hours,
@@ -768,7 +767,7 @@ def unsignoff_report(request, year, month):
 
         messages.success(
             request,
-            f"Successfully removed report sign-off for {month_name[month]} {year}.",
+            f"Successfully removed report sign-off for {calendar.month_name[month]} {year}.",
         )
     else:
         messages.error(request, "Invalid request method.")
