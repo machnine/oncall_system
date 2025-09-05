@@ -852,8 +852,7 @@ def add_staff_to_rota(request):
         rota_entry, created = RotaEntry.objects.get_or_create(
             date=date_obj,
             defaults={
-                'shift_type': 'normal',
-                'day_type': None
+                'shift_type': 'normal'
             }
         )
         
@@ -914,13 +913,13 @@ def toggle_shift_type(request):
         rota_entry, created = RotaEntry.objects.get_or_create(
             date=date_obj,
             defaults={
-                'shift_type': 'normal',
-                'day_type': None
+                'shift_type': 'normal'
             }
         )
         
-        # Toggle shift type
-        if rota_entry.shift_type == 'normal':
+        # Toggle shift type (handle NULL values by treating them as 'normal')
+        current_type = rota_entry.shift_type or 'normal'
+        if current_type == 'normal':
             rota_entry.shift_type = 'nhsp'
         else:
             rota_entry.shift_type = 'normal'
@@ -981,6 +980,42 @@ def clear_day_staff(request):
             'success': True,
             'deleted_count': deleted_count,
             'rota_entry_id': rota_entry_id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+@require_oncall_staff
+def create_rota_entry(request):
+    """AJAX endpoint to create a RotaEntry for a specific date"""
+    try:
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        
+        if not date_str:
+            return JsonResponse({'error': 'Date is required'}, status=400)
+        
+        # Parse date
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get or create rota entry for this date
+        rota_entry, created = RotaEntry.objects.get_or_create(
+            date=date_obj,
+            defaults={
+                'shift_type': 'normal'
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'shift_type': rota_entry.shift_type,
+            'rota_entry_id': rota_entry.id,
+            'created': created
         })
         
     except json.JSONDecodeError:
