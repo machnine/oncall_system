@@ -816,12 +816,24 @@ def rota_calendar(request):
     # Build month context for rota (allows future months)
     month_context = build_rota_month_context(month, year)
     
-    # Get all staff for potential assignment
-    all_staff = OnCallStaff.objects.all().select_related('user').order_by('assignment_id')
+    # Get all staff for potential assignment, grouped by seniority level
+    all_staff = OnCallStaff.objects.all().select_related('user').order_by('seniority_level', 'assignment_id')
+    
+    # Group staff by seniority level for the context menu
+    staff_by_seniority = {
+        'trainee': [],
+        'oncall': [],
+        'senior': []
+    }
+    
+    for staff in all_staff:
+        if staff.seniority_level in staff_by_seniority:
+            staff_by_seniority[staff.seniority_level].append(staff)
     
     context = {
         'calendar_weeks': calendar_weeks,
         'all_staff': all_staff,
+        'staff_by_seniority': staff_by_seniority,
         **month_context,
     }
     
@@ -1017,6 +1029,47 @@ def create_rota_entry(request):
             'rota_entry_id': rota_entry.id,
             'created': created
         })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+@require_oncall_staff
+def remove_staff_from_rota(request):
+    """AJAX endpoint to remove a specific staff member from rota"""
+    try:
+        data = json.loads(request.body)
+        shift_id = data.get('shift_id')
+        
+        if not shift_id:
+            return JsonResponse({'error': 'Shift ID is required'}, status=400)
+        
+        # Get the shift
+        shift = get_object_or_404(RotaShift, id=shift_id)
+        rota_entry = shift.rota_entry
+        
+        # Delete the shift
+        shift.delete()
+        
+        # Check if this was the last shift for this rota entry
+        remaining_shifts = RotaShift.objects.filter(rota_entry=rota_entry).count()
+        
+        response_data = {
+            'success': True,
+            'remaining_shifts': remaining_shifts
+        }
+        
+        # If no shifts remain, optionally delete the rota entry
+        if remaining_shifts == 0:
+            rota_entry.delete()
+            response_data['rota_entry_deleted'] = True
+        else:
+            response_data['rota_entry_deleted'] = False
+            
+        return JsonResponse(response_data)
         
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON data'}, status=400)

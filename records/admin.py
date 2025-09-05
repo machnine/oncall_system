@@ -21,14 +21,15 @@ from .models import (
 
 @admin.register(OnCallStaff)
 class OnCallStaffAdmin(admin.ModelAdmin):
-    list_display = ("assignment_id", "get_full_name", "get_username", "color_preview")
+    list_display = ("assignment_id", "get_full_name", "get_username", "seniority_level", "color_preview")
     search_fields = (
         "assignment_id",
         "user__username",
         "user__first_name",
         "user__last_name",
     )
-    fields = ("assignment_id", "user", "color")
+    list_filter = ("seniority_level",)
+    fields = ("assignment_id", "user", "color", "seniority_level")
 
     def get_full_name(self, obj):
         return obj.user.get_full_name()

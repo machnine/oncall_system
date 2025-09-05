@@ -20,6 +20,7 @@ urlpatterns = [
     path('rota/', views.rota_calendar, name='rota_calendar'),
     path('rota/create-entry/', views.create_rota_entry, name='create_rota_entry'),
     path('rota/add-staff/', views.add_staff_to_rota, name='add_staff_to_rota'),
+    path('rota/remove-staff/', views.remove_staff_from_rota, name='remove_staff_from_rota'),
     path('rota/toggle-shift-type/', views.toggle_shift_type, name='toggle_shift_type'),
     path('rota/clear-day/', views.clear_day_staff, name='clear_day_staff'),
 ]

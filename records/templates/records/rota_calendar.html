@@ -1,6 +1,45 @@
 {% extends 'records/base.html' %}
 {% load static %}
 {% block title %}On-Call Rota - {{ current_month }}{% endblock %}
+
+<style>
+.table td {
+    vertical-align: top;
+    padding: 4px;
+    position: relative;
+}
+.rota-day {
+    min-height: 80px;
+    position: relative;
+    cursor: pointer;
+}
+.staff-entry {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+    position: relative;
+}
+.staff-entry:hover .staff-delete-btn {
+    opacity: 1;
+}
+.staff-delete-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 1rem;
+    color: #dc3545;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 20;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9);
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
+}
+.staff-delete-btn:hover {
+    transform: scale(1.1);
+}
+</style>
+
 {% block content %}
     {% csrf_token %}
     <div class="row">
@@ -35,100 +74,118 @@
                         {% for week in calendar_weeks %}
                             <tr>
                                 {% for day in week %}
-                                    <td class="p-2 align-top rota-day {% if day.is_today %}border-primary{% elif day.is_weekend %}bg-light{% endif %}"
-                                        style="height: 120px;
-                                               min-height: 120px;
-                                               {% if day.is_today %}background-color: rgba(13, 110, 253, 0.08);
-                                               border: 2px solid var(--bs-primary) !important;
-                                               {% endif %}"
+                                    <td class="border rota-day {% if day.is_today %}border-primary{% elif day.is_weekend %}bg-light{% endif %}"
+                                        {% if day.is_today %}style="background-color: rgba(13, 110, 253, 0.08); border: 2px solid var(--bs-primary) !important;"{% endif %}
                                         data-date="{{ day.date|date:'Y-m-d' }}"
                                         data-rota-entry-id="{% if day.rota_entry %}{{ day.rota_entry.id }}{% endif %}"
                                         data-shift-type="{% if day.rota_entry %}{{ day.rota_entry.shift_type|default:'normal' }}{% else %}normal{% endif %}">
                                         {% if day %}
-                                            <!-- Day number -->
-                                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                                <span class="fw-bold {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}">
-                                                    {{ day.day_num }}
-                                                </span>
-                                                <div>
-                                                    {% if day.rota_entry.shift_type == 'nhsp' %}
-                                                        <span class="badge badge-pill bg-danger me-1" style="font-size: 0.6rem; opacity: 0.7;">NHSP</span>
-                                                    {% endif %}
-                                                    {% if day.is_bank_holiday %}
-                                                        <span class="badge badge-pill bg-warning text-dark me-1" style="font-size: 0.6rem; opacity: 0.7;">BH</span>
-                                                    {% endif %}
+                                            <div class="position-relative h-100">
+                                                <!-- Date header with proper spacing for date and badges -->
+                                                <div class="d-flex justify-content-between align-items-start p-1">
+                                                    <span class="fw-bold {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}" 
+                                                          style="font-size: 0.9rem;">
+                                                        {{ day.day_num }}
+                                                    </span>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% if day.rota_entry.shift_type == 'nhsp' %}
+                                                            <span class="badge bg-danger" style="font-size: 0.6rem;">NHSP</span>
+                                                        {% endif %}
+                                                        {% if day.is_bank_holiday %}
+                                                            <span class="badge bg-warning text-dark" style="font-size: 0.6rem;">BH</span>
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <!-- Staff assignments organized by seniority level in rows -->
-                                            {% if day.rota_entry %}
-                                                <div class="pt-3">
-                                                    <!-- All shifts on a day have the same type, so we can just iterate through all shifts -->
-                                                    {% with all_shifts=day.rota_entry.shifts.all %}
-                                                        <!-- Trainee row -->
-                                                        <div class="mb-1 d-flex rota-row"
-                                                             style="height: 1.75rem"
-                                                             data-seniority="1"
-                                                             data-seniority-name="Trainee">
+                                                
+                                                {% if day.rota_entry %}
+                                                    <div class="px-1 pb-1">
+                                                        {% with all_shifts=day.rota_entry.shifts.all %}
+                                                            <!-- Trainee row -->
+                                                            <div class="mb-1 d-flex flex-wrap rota-row"
+                                                                 style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                                 data-seniority="trainee"
+                                                                 data-seniority-name="Trainee">
                                                             {% for shift in all_shifts %}
-                                                                {% if shift.seniority_level == '1' %}
-                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center"
+                                                                {% if shift.seniority_level == 'trainee' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
                                                                           style="font-size: 0.8rem;
                                                                                  font-weight: 500;
                                                                                  background-color: {{ shift.staff.color }}70;
                                                                                  color: #333;
                                                                                  border-radius: 3px;
                                                                                  flex: 1;
-                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
-                                                                        {{ shift.staff.assignment_id }}
-                                                                        {% if shift.notes %}
-                                                                            <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
-                                                                        {% endif %}
+                                                                                 position: relative;
+                                                                                 cursor: default;
+                                                                                 overflow: visible;
+                                                                                 min-width: 60px;"
+                                                                          data-shift-id="{{ shift.id }}"
+                                                                          data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                        <div class="d-flex align-items-center justify-content-center w-100">
+                                                                            {{ shift.staff.assignment_id }}
+                                                                            {% if shift.notes %}
+                                                                                <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                            {% endif %}
+                                                                        </div>
                                                                     </span>
                                                                 {% endif %}
                                                             {% endfor %}
                                                         </div>
                                                         <!-- On-Call row -->
-                                                        <div class="mb-1 d-flex rota-row"
-                                                             style="height: 1.75rem"
-                                                             data-seniority="2"
+                                                        <div class="mb-1 d-flex flex-wrap rota-row"
+                                                             style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                             data-seniority="oncall"
                                                              data-seniority-name="On-Call">
                                                             {% for shift in all_shifts %}
-                                                                {% if shift.seniority_level == '2' %}
-                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center"
+                                                                {% if shift.seniority_level == 'oncall' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
                                                                           style="font-size: 0.8rem;
                                                                                  font-weight: 500;
                                                                                  background-color: {{ shift.staff.color }}70;
                                                                                  color: #333;
                                                                                  border-radius: 3px;
                                                                                  flex: 1;
-                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
-                                                                        {{ shift.staff.assignment_id }}
-                                                                        {% if shift.notes %}
-                                                                            <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
-                                                                        {% endif %}
+                                                                                 position: relative;
+                                                                                 cursor: default;
+                                                                                 overflow: visible;
+                                                                                 min-width: 60px;"
+                                                                          data-shift-id="{{ shift.id }}"
+                                                                          data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                        <div class="d-flex align-items-center justify-content-center w-100">
+                                                                            {{ shift.staff.assignment_id }}
+                                                                            {% if shift.notes %}
+                                                                                <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                            {% endif %}
+                                                                        </div>
                                                                     </span>
                                                                 {% endif %}
                                                             {% endfor %}
                                                         </div>
                                                         <!-- Senior row -->
-                                                        <div class="mb-1 d-flex rota-row"
-                                                             style="height: 1.75rem"
-                                                             data-seniority="3"
+                                                        <div class="mb-1 d-flex flex-wrap rota-row"
+                                                             style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                             data-seniority="senior"
                                                              data-seniority-name="Senior">
                                                             {% for shift in all_shifts %}
-                                                                {% if shift.seniority_level == '3' %}
-                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center"
+                                                                {% if shift.seniority_level == 'senior' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
                                                                           style="font-size: 0.8rem;
                                                                                  font-weight: 500;
                                                                                  background-color: {{ shift.staff.color }}70;
                                                                                  color: #333;
                                                                                  border-radius: 3px;
                                                                                  flex: 1;
-                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
-                                                                        {{ shift.staff.assignment_id }}
-                                                                        {% if shift.notes %}
-                                                                            <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
-                                                                        {% endif %}
+                                                                                 position: relative;
+                                                                                 cursor: default;
+                                                                                 overflow: visible;
+                                                                                 min-width: 60px;"
+                                                                          data-shift-id="{{ shift.id }}"
+                                                                          data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                        <div class="d-flex align-items-center justify-content-center w-100">
+                                                                            {{ shift.staff.assignment_id }}
+                                                                            {% if shift.notes %}
+                                                                                <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                            {% endif %}
+                                                                        </div>
                                                                     </span>
                                                                 {% endif %}
                                                             {% endfor %}
@@ -136,11 +193,30 @@
                                                     {% endwith %}
                                                 </div>
                                             {% else %}
-                                                <!-- Empty day indicator -->
-                                                <div class="text-center text-muted mt-3" style="font-size: 0.8rem;">
-                                                    <i class="bi bi-dash-circle-dotted"></i>
-                                                    <br>
-                                                    <small>No rota</small>
+                                                <!-- Empty day with seniority structure -->
+                                                <div class="px-1 pb-1">
+                                                    <!-- Trainee row (empty) -->
+                                                    <div class="mb-1 d-flex flex-wrap rota-row"
+                                                         style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                         data-seniority="trainee"
+                                                         data-seniority-name="Trainee">
+                                                    </div>
+                                                    <!-- On-Call row with "No rota" indicator -->
+                                                    <div class="mb-1 d-flex flex-wrap rota-row align-items-center justify-content-center"
+                                                         style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                         data-seniority="oncall"
+                                                         data-seniority-name="On-Call">
+                                                        <div class="text-center text-muted" style="font-size: 0.7rem; opacity: 0.6;">
+                                                            <i class="bi bi-dash-circle-dotted"></i>
+                                                            <span class="ms-1">No rota</span>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Senior row (empty) -->
+                                                    <div class="mb-1 d-flex flex-wrap rota-row"
+                                                         style="min-height: 1.5rem; gap: 1px; overflow: visible;"
+                                                         data-seniority="senior"
+                                                         data-seniority-name="Senior">
+                                                    </div>
                                                 </div>
                                             {% endif %}
                                         {% endif %}
@@ -191,15 +267,32 @@
                     id: {{ staff.id }},
                     assignment_id: "{{ staff.assignment_id }}",
                     name: "{{ staff.user.get_full_name }}",
-                    color: "{{ staff.color }}"
+                    color: "{{ staff.color }}",
+                    seniority_level: "{{ staff.seniority_level }}"
                 }{% if not forloop.last %},{% endif %}
                 {% endfor %}
             ];
             
+            const staffBySeniority = {
+                {% for seniority, staff_list in staff_by_seniority.items %}
+                "{{ seniority }}": [
+                    {% for staff in staff_list %}
+                    {
+                        id: {{ staff.id }},
+                        assignment_id: "{{ staff.assignment_id }}",
+                        name: "{{ staff.user.get_full_name }}",
+                        color: "{{ staff.color }}",
+                        seniority_level: "{{ staff.seniority_level }}"
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            };
+            
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
             if (window.initRotaCalendar) {
-                window.initRotaCalendar(availableStaff, csrfToken);
+                window.initRotaCalendar(availableStaff, csrfToken, staffBySeniority);
             }
         });
     </script>
