@@ -87,43 +87,65 @@ class RotaCalendar {
     }
 
     showDateManagementMenu(x, y) {
-        // Position and show date context menu
+        // First show the menu temporarily to get its dimensions
+        this.dateContextMenu.style.display = 'block';
+        this.dateContextMenu.style.visibility = 'hidden';
+        
         const rect = this.dateContextMenu.getBoundingClientRect();
         
-        // Prevent menu from going off-screen
+        // Check if menu would go off-screen horizontally
         if (x + rect.width > window.innerWidth) {
             x = window.innerWidth - rect.width - 10;
         }
+        
+        // Check if menu would go off-screen vertically
         if (y + rect.height > window.innerHeight) {
-            y = window.innerHeight - rect.height - 10;
+            // Position menu above the click point instead of below
+            y = y - rect.height - 5;
+        }
+        
+        // Ensure menu doesn't go above the top of the viewport
+        if (y < 0) {
+            y = 5;
         }
         
         this.dateContextMenu.style.left = x + 'px';
         this.dateContextMenu.style.top = y + 'px';
-        this.dateContextMenu.style.display = 'block';
+        this.dateContextMenu.style.visibility = 'visible';
         
         // Update the NHSP toggle text
         this.updateDateMenuText();
     }
 
     showStaffSelectionMenu(x, y) {
-        // Position and show staff context menu
+        // First show the menu temporarily to get its dimensions
+        this.staffContextMenu.style.display = 'block';
+        this.staffContextMenu.style.visibility = 'hidden';
+        
+        // Update the header and populate staff list first to get accurate dimensions
+        this.updateStaffMenu();
+        
         const rect = this.staffContextMenu.getBoundingClientRect();
         
-        // Prevent menu from going off-screen
+        // Check if menu would go off-screen horizontally
         if (x + rect.width > window.innerWidth) {
             x = window.innerWidth - rect.width - 10;
         }
+        
+        // Check if menu would go off-screen vertically
         if (y + rect.height > window.innerHeight) {
-            y = window.innerHeight - rect.height - 10;
+            // Position menu above the click point instead of below
+            y = y - rect.height - 5;
+        }
+        
+        // Ensure menu doesn't go above the top of the viewport
+        if (y < 0) {
+            y = 5;
         }
         
         this.staffContextMenu.style.left = x + 'px';
         this.staffContextMenu.style.top = y + 'px';
-        this.staffContextMenu.style.display = 'block';
-        
-        // Update the header and populate staff list
-        this.updateStaffMenu();
+        this.staffContextMenu.style.visibility = 'visible';
     }
 
     attachContextMenuHandlers() {
