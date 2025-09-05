@@ -226,9 +226,14 @@ class RotaCalendar {
 
     showStaffForSeniority(container) {
         // Filter staff by current seniority level
-        const staffToShow = this.currentSeniorityLevel && this.staffBySeniority[this.currentSeniorityLevel] 
-            ? this.staffBySeniority[this.currentSeniorityLevel] 
+        let staffToShow = this.currentSeniorityLevel && this.staffBySeniority[this.currentSeniorityLevel] 
+            ? [...this.staffBySeniority[this.currentSeniorityLevel]]  // Create a copy
             : [];
+        
+        // Special rule: Include senior staff in on-call list (for when seniors help out)
+        if (this.currentSeniorityLevel === 'oncall' && this.staffBySeniority['senior']) {
+            staffToShow = [...staffToShow, ...this.staffBySeniority['senior']];
+        }
         
         if (staffToShow.length === 0) {
             const noStaffItem = document.createElement('div');
@@ -237,11 +242,30 @@ class RotaCalendar {
             container.appendChild(noStaffItem);
             return;
         }
+
+        // Sort staff to show on-call first, then senior (when both are present)
+        if (this.currentSeniorityLevel === 'oncall') {
+            staffToShow.sort((a, b) => {
+                if (a.seniority_level === 'oncall' && b.seniority_level === 'senior') return -1;
+                if (a.seniority_level === 'senior' && b.seniority_level === 'oncall') return 1;
+                return 0;
+            });
+        }
         
-        staffToShow.forEach(staff => {
+        staffToShow.forEach((staff, index) => {
             const staffItem = document.createElement('a');
             staffItem.className = 'dropdown-item d-flex align-items-center';
             staffItem.href = '#';
+            
+            // Add visual separator between on-call and senior staff
+            if (this.currentSeniorityLevel === 'oncall' && index > 0 && 
+                staffToShow[index - 1].seniority_level === 'oncall' && 
+                staff.seniority_level === 'senior') {
+                const separator = document.createElement('div');
+                separator.className = 'dropdown-divider';
+                container.appendChild(separator);
+            }
+            
             staffItem.innerHTML = `
                 <div class="me-2" style="width: 12px; height: 12px; background-color: ${staff.color}70; border-radius: 2px;"></div>
                 ${staff.assignment_id} - ${staff.name}
