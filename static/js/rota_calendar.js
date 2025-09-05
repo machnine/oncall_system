@@ -76,17 +76,19 @@ class RotaCalendar {
 
     attachDayEventHandlers() {
         document.querySelectorAll('.rota-day').forEach(dayCell => {
-            dayCell.addEventListener('contextmenu', (e) => {
-                // Only handle if not clicking on a rota-row
-                if (!e.target.closest('.rota-row')) {
+            // Add context menu to day header only (for NHSP toggle and clear day)
+            const dayHeader = dayCell.querySelector('.d-flex.justify-content-between.align-items-start.p-1');
+            if (dayHeader) {
+                dayHeader.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.currentDay = dayCell;
                     this.currentSeniorityLevel = null;
-                    this.currentSeniorityName = 'Day';
+                    this.currentSeniorityName = 'Day Management';
                     
-                    this.showContextMenu(e.pageX, e.pageY);
-                }
-            });
+                    this.showDayManagementMenu(e.pageX, e.pageY);
+                });
+            }
         });
     }
 
@@ -107,6 +109,25 @@ class RotaCalendar {
         this.contextMenu.style.display = 'block';
         
         this.updateContextMenu();
+    }
+
+    showDayManagementMenu(x, y) {
+        // Position and show context menu for day management only
+        const rect = this.contextMenu.getBoundingClientRect();
+        
+        // Prevent menu from going off-screen
+        if (x + rect.width > window.innerWidth) {
+            x = window.innerWidth - rect.width - 10;
+        }
+        if (y + rect.height > window.innerHeight) {
+            y = window.innerHeight - rect.height - 10;
+        }
+        
+        this.contextMenu.style.left = x + 'px';
+        this.contextMenu.style.top = y + 'px';
+        this.contextMenu.style.display = 'block';
+        
+        this.updateDayManagementMenu();
     }
 
     attachContextMenuHandlers() {
@@ -204,64 +225,32 @@ class RotaCalendar {
         this.populateStaffList();
     }
 
+    updateDayManagementMenu() {
+        const shiftType = this.currentDay.dataset.shiftType;
+        const shiftTypeText = document.getElementById('shift-type-text');
+        const seniorityNameSpan = document.getElementById('seniority-name');
+        const staffListContainer = document.getElementById('staff-list');
+        
+        // Update header
+        seniorityNameSpan.textContent = this.currentSeniorityName;
+        
+        // Hide staff list for day management menu
+        staffListContainer.innerHTML = '';
+        
+        // Update shift type toggle text
+        if (shiftType === 'nhsp') {
+            shiftTypeText.textContent = 'Remove NHSP';
+        } else {
+            shiftTypeText.textContent = 'Set NHSP';
+        }
+    }
+
     populateStaffList() {
         const container = document.getElementById('staff-list');
         container.innerHTML = '';
         
-        // If no specific seniority level selected, show seniority level selection first
-        if (!this.currentSeniorityLevel) {
-            this.showSenioritySelection(container);
-            return;
-        }
-        
+        // Always show staff for the selected seniority level (no general selection anymore)
         this.showStaffForSeniority(container);
-    }
-
-    showSenioritySelection(container) {
-        const seniorityLevels = [
-            { level: 'trainee', name: 'Trainee' },
-            { level: 'oncall', name: 'On-Call' },
-            { level: 'senior', name: 'Senior' }
-        ];
-        
-        seniorityLevels.forEach(seniority => {
-            const seniorityItem = document.createElement('a');
-            seniorityItem.className = 'dropdown-item';
-            seniorityItem.href = '#';
-            seniorityItem.innerHTML = `<i class="bi bi-people"></i> Add ${seniority.name} Staff`;
-            
-            seniorityItem.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleSenioritySelection(seniority);
-            });
-            
-            container.appendChild(seniorityItem);
-        });
-    }
-
-    async handleSenioritySelection(seniority) {
-        // Set the seniority level and show staff for that level
-        this.currentSeniorityLevel = seniority.level;
-        this.currentSeniorityName = seniority.name;
-        
-        console.log("Selected seniority level:", this.currentSeniorityLevel);
-        
-        // Check if this is an empty day that needs a RotaEntry created first
-        const isEmpty = !this.currentDay.dataset.rotaEntryId || this.currentDay.dataset.rotaEntryId === '';
-        
-        if (isEmpty) {
-            console.log('Empty day detected after seniority selection, creating RotaEntry first');
-            try {
-                await this.createRotaEntry();
-                this.populateStaffList();
-            } catch (error) {
-                console.error('Error creating rota entry:', error);
-                alert('An error occurred while creating rota entry');
-            }
-        } else {
-            // RotaEntry already exists, just show staff list
-            this.populateStaffList();
-        }
     }
 
     showStaffForSeniority(container) {
@@ -676,55 +665,29 @@ class RotaCalendar {
     }
 
     clearDayDOM(dayCell) {
-        // Clear all staff from all seniority rows
+        // Simply clear all staff from existing seniority rows instead of recreating structure
         const rotaRows = dayCell.querySelectorAll('.rota-row');
         rotaRows.forEach(row => {
             const staffSpans = row.querySelectorAll('.staff-entry');
             staffSpans.forEach(span => span.remove());
         });
         
-        // Find the rota content container (could be .pt-2 or .pt-3)
-        let rotaContent = dayCell.querySelector('.pt-2');
-        if (!rotaContent) {
-            rotaContent = dayCell.querySelector('.pt-3');
+        // Add "No rota" indicator back to the oncall row if it doesn't exist
+        const oncallRow = dayCell.querySelector('.rota-row[data-seniority="oncall"]');
+        if (oncallRow && !oncallRow.querySelector('.text-muted')) {
+            // Add centering classes back
+            oncallRow.classList.add('align-items-center', 'justify-content-center');
+            
+            // Add the "No rota" indicator
+            const noRotaIndicator = document.createElement('div');
+            noRotaIndicator.className = 'text-center text-muted';
+            noRotaIndicator.style.cssText = 'font-size: 0.7rem; opacity: 0.6;';
+            noRotaIndicator.innerHTML = `
+                <i class="bi bi-dash-circle-dotted"></i>
+                <span class="ms-1">No rota</span>
+            `;
+            oncallRow.appendChild(noRotaIndicator);
         }
-        
-        if (rotaContent) {
-            rotaContent.remove();
-        }
-        
-        // Create the new structured empty day layout
-        const emptyStructure = document.createElement('div');
-        emptyStructure.className = 'pt-2';
-        emptyStructure.style.minHeight = '60px';
-        emptyStructure.innerHTML = `
-            <!-- Trainee row (empty) -->
-            <div class="mb-1 d-flex flex-wrap rota-row"
-                 style="min-height: 1.5rem; gap: 1px; overflow: visible;"
-                 data-seniority="trainee"
-                 data-seniority-name="Trainee">
-            </div>
-            <!-- On-Call row with "No rota" indicator -->
-            <div class="mb-1 d-flex flex-wrap rota-row align-items-center justify-content-center"
-                 style="min-height: 1.5rem; gap: 1px; overflow: visible;"
-                 data-seniority="oncall"
-                 data-seniority-name="On-Call">
-                <div class="text-center text-muted" style="font-size: 0.7rem; opacity: 0.6;">
-                    <i class="bi bi-dash-circle-dotted"></i>
-                    <span class="ms-1">No rota</span>
-                </div>
-            </div>
-            <!-- Senior row (empty) -->
-            <div class="mb-1 d-flex flex-wrap rota-row"
-                 style="min-height: 1.5rem; gap: 1px; overflow: visible;"
-                 data-seniority="senior"
-                 data-seniority-name="Senior">
-            </div>
-        `;
-        dayCell.appendChild(emptyStructure);
-        
-        // Re-attach event handlers to the new rows
-        this.attachRotaRowEventHandlers();
         
         // Clear data attributes
         dayCell.dataset.rotaEntryId = '';
