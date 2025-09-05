@@ -1,0 +1,129 @@
+<div class="table-responsive">
+    <table class="table table-bordered mb-0 fixed-table-layout">
+        <thead class="table-light">
+            <tr>
+                <th class="text-center py-3">Monday</th>
+                <th class="text-center py-3">Tuesday</th>
+                <th class="text-center py-3">Wednesday</th>
+                <th class="text-center py-3">Thursday</th>
+                <th class="text-center py-3">Friday</th>
+                <th class="text-center py-3">Saturday</th>
+                <th class="text-center py-3">Sunday</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in calendar_weeks %}
+                <tr>
+                    {% for day in week %}
+                        <td class="border rota-day {% if day.is_today %}border-primary{% elif day.is_weekend %}bg-light{% endif %}"
+                            {% if day.is_today %}style="background-color: rgba(13, 110, 253, 0.08); border: 2px solid var(--bs-primary) !important;"{% endif %}
+                            data-date="{{ day.date|date:'Y-m-d' }}"
+                            data-rota-entry-id="{% if day.rota_entry %}{{ day.rota_entry.id }}{% endif %}"
+                            data-shift-type="{% if day.rota_entry %}{{ day.rota_entry.shift_type|default:'normal' }}{% else %}normal{% endif %}">
+                            {% if day %}
+                                <div class="position-relative h-100">
+                                    <!-- Date header with proper spacing for date and badges -->
+                                    <div class="d-flex justify-content-between align-items-start p-1">
+                                        <span class="fw-bold date-number {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}"
+                                              title="Right-click for day options">{{ day.day_num }}</span>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% if day.rota_entry.shift_type == 'nhsp' %}<span class="badge bg-danger badge-nhsp">NHSP</span>{% endif %}
+                                            {% if day.is_bank_holiday %}<span class="badge bg-warning text-dark badge-bh">BH</span>{% endif %}
+                                        </div>
+                                    </div>
+                                    {% if day.rota_entry %}
+                                        <div class="px-1 pb-1">
+                                            {% with all_shifts=day.rota_entry.shifts.all %}
+                                                <!-- Trainee row -->
+                                                <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
+                                                     data-seniority="trainee"
+                                                     data-seniority-name="Trainee">
+                                                    {% for shift in all_shifts %}
+                                                        {% if shift.seniority_level == 'trainee' %}
+                                                            <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                  style="background-color: {{ shift.staff.color }}70"
+                                                                  data-shift-id="{{ shift.id }}"
+                                                                  data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                <div class="d-flex align-items-center justify-content-center w-100">
+                                                                    {{ shift.staff.assignment_id }}
+                                                                    {% if shift.notes %}
+                                                                        <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                                <!-- On-Call row -->
+                                                <div class="mb-1 d-flex flex-wrap rota-row seniority-row oncall-row"
+                                                     data-seniority="oncall"
+                                                     data-seniority-name="On-Call">
+                                                    {% for shift in all_shifts %}
+                                                        {% if shift.seniority_level == 'oncall' %}
+                                                            <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                  style="background-color: {{ shift.staff.color }}70"
+                                                                  data-shift-id="{{ shift.id }}"
+                                                                  data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                <div class="d-flex align-items-center justify-content-center w-100">
+                                                                    {{ shift.staff.assignment_id }}
+                                                                    {% if shift.notes %}
+                                                                        <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                                <!-- Senior row -->
+                                                <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
+                                                     data-seniority="senior"
+                                                     data-seniority-name="Senior Cover">
+                                                    {% for shift in all_shifts %}
+                                                        {% if shift.seniority_level == 'senior' %}
+                                                            <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                  style="background-color: {{ shift.staff.color }}70"
+                                                                  data-shift-id="{{ shift.id }}"
+                                                                  data-staff-id="{{ shift.staff.assignment_id }}">
+                                                                <div class="d-flex align-items-center justify-content-center w-100">
+                                                                    {{ shift.staff.assignment_id }}
+                                                                    {% if shift.notes %}
+                                                                        <i class="bi bi-info-circle ms-1" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endwith %}
+                                        </div>
+                                    {% else %}
+                                        <!-- Empty day with seniority structure -->
+                                        <div class="px-1 pb-1">
+                                            <!-- Trainee row (empty) -->
+                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
+                                                 data-seniority="trainee"
+                                                 data-seniority-name="Trainee"></div>
+                                            <!-- On-Call row with "No rota" indicator -->
+                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row oncall-row empty-oncall align-items-center justify-content-center"
+                                                 data-seniority="oncall"
+                                                 data-seniority-name="On-Call">
+                                                <div class="text-center text-muted no-rota-indicator">
+                                                    <i class="bi bi-dash-circle-dotted"></i>
+                                                    <span class="ms-1">No rota</span>
+                                                </div>
+                                            </div>
+                                            <!-- Senior row (empty) -->
+                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
+                                                 data-seniority="senior"
+                                                 data-seniority-name="Senior Cover"></div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
