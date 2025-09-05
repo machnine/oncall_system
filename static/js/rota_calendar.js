@@ -164,24 +164,10 @@ class RotaCalendar {
         if (!deleteBtn) {
             deleteBtn = document.createElement('i');
             deleteBtn.className = 'bi bi-x-circle-fill staff-delete-btn';
-            deleteBtn.style.cssText = `
-                position: absolute;
-                top: -8px;
-                right: -8px;
-                font-size: 1rem;
-                color: #dc3545;
-                cursor: pointer;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-                z-index: 20;
-                text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9);
-                filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
-            `;
             deleteBtn.title = 'Remove staff from rota';
             staffSpan.appendChild(deleteBtn);
         } else {
-            // Ensure existing delete button has correct styling
-            deleteBtn.style.opacity = '0';
+            // Existing delete button found, no additional styling needed
         }
 
         // Remove any existing event listeners to avoid duplicates
@@ -360,9 +346,14 @@ class RotaCalendar {
                         </div>
                     </div>
                     <div class="px-1 pb-1">
-                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="trainee" data-seniority-name="Trainee"></div>
-                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="oncall" data-seniority-name="On-Call"></div>
-                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible;" data-seniority="senior" data-seniority-name="Senior Cover"></div>
+                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible; padding-bottom: 0.25rem;" data-seniority="trainee" data-seniority-name="Trainee"></div>
+                        <div class="mb-1 d-flex flex-wrap rota-row align-items-center justify-content-center" style="min-height: 1.5rem; gap: 1px; overflow: visible; background-color: rgba(0, 225, 255, 0.05); border-radius: 2px;" data-seniority="oncall" data-seniority-name="On-Call">
+                            <div class="text-center text-muted" style="font-size: 0.7rem; opacity: 0.6;">
+                                <i class="bi bi-dash-circle-dotted"></i>
+                                <span class="ms-1">No rota</span>
+                            </div>
+                        </div>
+                        <div class="mb-1 d-flex flex-wrap rota-row" style="min-height: 1.5rem; gap: 1px; overflow: visible; padding-bottom: 0.25rem;" data-seniority="senior" data-seniority-name="Senior Cover"></div>
                     </div>
                 </div>
             `;
@@ -471,6 +462,15 @@ class RotaCalendar {
                     if (remainingStaffSpans.length === 0) {
                         // No staff left, show empty day indicator
                         this.clearDayDOM(dayCell);
+                    } else {
+                        // There are still staff in other rows, just remove the background from on-call row if it's empty
+                        const oncallRow = dayCell.querySelector('.rota-row[data-seniority="oncall"]');
+                        if (oncallRow && oncallRow.children.length === 0) {
+                            // Remove centering classes and background styling since there are still other staff
+                            oncallRow.classList.remove('align-items-center', 'justify-content-center');
+                            oncallRow.style.backgroundColor = '';
+                            oncallRow.style.borderRadius = '';
+                        }
                     }
                     
                     console.log('Staff removed successfully');
@@ -553,18 +553,7 @@ class RotaCalendar {
     createStaffSpan(shift) {
         const staffSpan = document.createElement('span');
         staffSpan.className = 'text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry';
-        staffSpan.style.cssText = `
-            font-size: 0.8rem; 
-            font-weight: 500;
-            background-color: ${shift.staff_color}70; 
-            color: #333;
-            border-radius: 3px;
-            flex: 1;
-            margin-right: 1px;
-            position: relative;
-            cursor: default;
-            overflow: visible;
-        `;
+        staffSpan.style.cssText = `background-color: ${shift.staff_color}70;`;
         staffSpan.dataset.shiftId = shift.id;
         staffSpan.dataset.staffId = shift.staff_id;
         
@@ -588,29 +577,10 @@ class RotaCalendar {
         // Create delete button (initially hidden)
         const deleteBtn = document.createElement('i');
         deleteBtn.className = 'bi bi-x-circle-fill staff-delete-btn';
-        deleteBtn.style.cssText = `
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            font-size: 1rem;
-            color: #dc3545;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            z-index: 20;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9);
-            filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
-        `;
         deleteBtn.title = 'Remove staff from rota';
         
-        // Add hover events to show/hide delete button
-        staffSpan.addEventListener('mouseenter', () => {
-            deleteBtn.style.opacity = '1';
-        });
-        
-        staffSpan.addEventListener('mouseleave', () => {
-            deleteBtn.style.opacity = '0';
-        });
+        // Add hover events to show/hide delete button (no longer needed with CSS)
+        // These can be removed since CSS handles the hover state
         
         // Add click event to delete button
         deleteBtn.addEventListener('click', (e) => {
@@ -662,6 +632,10 @@ class RotaCalendar {
         if (oncallRow && !oncallRow.querySelector('.text-muted')) {
             // Add centering classes back
             oncallRow.classList.add('align-items-center', 'justify-content-center');
+            
+            // Apply the background color styling
+            oncallRow.style.backgroundColor = 'rgba(0, 225, 255, 0.05)';
+            oncallRow.style.borderRadius = '2px';
             
             // Add the "No rota" indicator
             const noRotaIndicator = document.createElement('div');

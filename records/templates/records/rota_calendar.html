@@ -1,43 +1,9 @@
 {% extends 'records/base.html' %}
 {% load static %}
 {% block title %}On-Call Rota - {{ current_month }}{% endblock %}
-<style>
-.table td {
-    vertical-align: top;
-    padding: 4px;
-    position: relative;
-}
-.rota-day {
-    min-height: 80px;
-    position: relative;
-    cursor: pointer;
-}
-.staff-entry {
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-bottom: 2px;
-    position: relative;
-}
-.staff-entry:hover .staff-delete-btn {
-    opacity: 1;
-}
-.staff-delete-btn {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    font-size: 1rem;
-    color: #dc3545;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 20;
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9);
-    filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
-}
-.staff-delete-btn:hover {
-    transform: scale(1.1);
-}
-</style>
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/rota_calendar.css' %}">
+{% endblock %}
 {% block content %}
     {% csrf_token %}
     <div class="row">
@@ -56,16 +22,16 @@
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered mb-0" style="table-layout: fixed;">
+                <table class="table table-bordered mb-0 fixed-table-layout">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center py-3" style="width: 14.28%;">Monday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Tuesday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Wednesday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Thursday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Friday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Saturday</th>
-                            <th class="text-center py-3" style="width: 14.28%;">Sunday</th>
+                            <th class="text-center py-3">Monday</th>
+                            <th class="text-center py-3">Tuesday</th>
+                            <th class="text-center py-3">Wednesday</th>
+                            <th class="text-center py-3">Thursday</th>
+                            <th class="text-center py-3">Friday</th>
+                            <th class="text-center py-3">Saturday</th>
+                            <th class="text-center py-3">Sunday</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,39 +48,23 @@
                                                 <!-- Date header with proper spacing for date and badges -->
                                                 <div class="d-flex justify-content-between align-items-start p-1">
                                                     <span class="fw-bold date-number {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}"
-                                                          style="font-size: 0.9rem;
-                                                                 cursor: pointer"
                                                           title="Right-click for day options">{{ day.day_num }}</span>
                                                     <div class="d-flex flex-wrap gap-1">
-                                                        {% if day.rota_entry.shift_type == 'nhsp' %}
-                                                            <span class="badge bg-danger" style="font-size: 0.6rem;">NHSP</span>
-                                                        {% endif %}
-                                                        {% if day.is_bank_holiday %}<span class="badge bg-warning text-dark" style="font-size: 0.6rem;">BH</span>{% endif %}
+                                                        {% if day.rota_entry.shift_type == 'nhsp' %}<span class="badge bg-danger badge-nhsp">NHSP</span>{% endif %}
+                                                        {% if day.is_bank_holiday %}<span class="badge bg-warning text-dark badge-bh">BH</span>{% endif %}
                                                     </div>
                                                 </div>
                                                 {% if day.rota_entry %}
                                                     <div class="px-1 pb-1">
                                                         {% with all_shifts=day.rota_entry.shifts.all %}
                                                             <!-- Trainee row -->
-                                                            <div class="mb-1 d-flex flex-wrap rota-row"
-                                                                 style="min-height: 1.5rem;
-                                                                        gap: 1px;
-                                                                        overflow: visible"
+                                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
                                                                  data-seniority="trainee"
                                                                  data-seniority-name="Trainee">
                                                                 {% for shift in all_shifts %}
                                                                     {% if shift.seniority_level == 'trainee' %}
-                                                                        <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
-                                                                              style="font-size: 0.8rem;
-                                                                                     font-weight: 500;
-                                                                                     background-color: {{ shift.staff.color }}70;
-                                                                                     color: #333;
-                                                                                     border-radius: 3px;
-                                                                                     flex: 1;
-                                                                                     position: relative;
-                                                                                     cursor: default;
-                                                                                     overflow: visible;
-                                                                                     min-width: 60px"
+                                                                        <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                              style="background-color: {{ shift.staff.color }}70"
                                                                               data-shift-id="{{ shift.id }}"
                                                                               data-staff-id="{{ shift.staff.assignment_id }}">
                                                                             <div class="d-flex align-items-center justify-content-center w-100">
@@ -128,25 +78,13 @@
                                                                 {% endfor %}
                                                             </div>
                                                             <!-- On-Call row -->
-                                                            <div class="mb-1 d-flex flex-wrap rota-row"
-                                                                 style="min-height: 1.5rem;
-                                                                        gap: 1px;
-                                                                        overflow: visible"
+                                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row oncall-row"
                                                                  data-seniority="oncall"
                                                                  data-seniority-name="On-Call">
                                                                 {% for shift in all_shifts %}
                                                                     {% if shift.seniority_level == 'oncall' %}
-                                                                        <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
-                                                                              style="font-size: 0.8rem;
-                                                                                     font-weight: 500;
-                                                                                     background-color: {{ shift.staff.color }}70;
-                                                                                     color: #333;
-                                                                                     border-radius: 3px;
-                                                                                     flex: 1;
-                                                                                     position: relative;
-                                                                                     cursor: default;
-                                                                                     overflow: visible;
-                                                                                     min-width: 60px"
+                                                                        <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                              style="background-color: {{ shift.staff.color }}70"
                                                                               data-shift-id="{{ shift.id }}"
                                                                               data-staff-id="{{ shift.staff.assignment_id }}">
                                                                             <div class="d-flex align-items-center justify-content-center w-100">
@@ -160,25 +98,13 @@
                                                                 {% endfor %}
                                                             </div>
                                                             <!-- Senior row -->
-                                                            <div class="mb-1 d-flex flex-wrap rota-row"
-                                                                 style="min-height: 1.5rem;
-                                                                        gap: 1px;
-                                                                        overflow: visible"
+                                                            <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
                                                                  data-seniority="senior"
                                                                  data-seniority-name="Senior Cover">
                                                                 {% for shift in all_shifts %}
                                                                     {% if shift.seniority_level == 'senior' %}
-                                                                        <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center staff-entry"
-                                                                              style="font-size: 0.8rem;
-                                                                                     font-weight: 500;
-                                                                                     background-color: {{ shift.staff.color }}70;
-                                                                                     color: #333;
-                                                                                     border-radius: 3px;
-                                                                                     flex: 1;
-                                                                                     position: relative;
-                                                                                     cursor: default;
-                                                                                     overflow: visible;
-                                                                                     min-width: 60px"
+                                                                        <span class="text-center text-truncate px-2 d-flex align-items-center justify-content-center staff-entry"
+                                                                              style="background-color: {{ shift.staff.color }}70"
                                                                               data-shift-id="{{ shift.id }}"
                                                                               data-staff-id="{{ shift.staff.assignment_id }}">
                                                                             <div class="d-flex align-items-center justify-content-center w-100">
@@ -197,29 +123,20 @@
                                                     <!-- Empty day with seniority structure -->
                                                     <div class="px-1 pb-1">
                                                         <!-- Trainee row (empty) -->
-                                                        <div class="mb-1 d-flex flex-wrap rota-row"
-                                                             style="min-height: 1.5rem;
-                                                                    gap: 1px;
-                                                                    overflow: visible"
+                                                        <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
                                                              data-seniority="trainee"
                                                              data-seniority-name="Trainee"></div>
                                                         <!-- On-Call row with "No rota" indicator -->
-                                                        <div class="mb-1 d-flex flex-wrap rota-row align-items-center justify-content-center"
-                                                             style="min-height: 1.5rem;
-                                                                    gap: 1px;
-                                                                    overflow: visible"
+                                                        <div class="mb-1 d-flex flex-wrap rota-row seniority-row oncall-row empty-oncall align-items-center justify-content-center"
                                                              data-seniority="oncall"
                                                              data-seniority-name="On-Call">
-                                                            <div class="text-center text-muted" style="font-size: 0.7rem; opacity: 0.6;">
+                                                            <div class="text-center text-muted no-rota-indicator">
                                                                 <i class="bi bi-dash-circle-dotted"></i>
                                                                 <span class="ms-1">No rota</span>
                                                             </div>
                                                         </div>
                                                         <!-- Senior row (empty) -->
-                                                        <div class="mb-1 d-flex flex-wrap rota-row"
-                                                             style="min-height: 1.5rem;
-                                                                    gap: 1px;
-                                                                    overflow: visible"
+                                                        <div class="mb-1 d-flex flex-wrap rota-row seniority-row"
                                                              data-seniority="senior"
                                                              data-seniority-name="Senior Cover"></div>
                                                     </div>
@@ -246,11 +163,7 @@
             </div>
         </div>
         <!-- Date Management Context Menu -->
-        <div id="dateContextMenu"
-             class="dropdown-menu"
-             style="display: none;
-                    position: absolute;
-                    z-index: 1000">
+        <div id="dateContextMenu" class="dropdown-menu context-menu-hidden">
             <a class="dropdown-item text-danger" href="#" id="date-toggle-shift-type">
                 <i class="bi bi-cash-stack"></i> <span id="date-shift-type-text">Set NHSP</span>
             </a>
@@ -259,15 +172,11 @@
             </a>
         </div>
         <!-- Staff Selection Context Menu -->
-        <div id="staffContextMenu"
-             class="dropdown-menu"
-             style="display: none;
-                    position: absolute;
-                    z-index: 1000">
-            <h6 class="dropdown-header" style="font-size: 0.75rem; padding: 0.25rem 1rem; margin-bottom: 0;">
+        <div id="staffContextMenu" class="dropdown-menu context-menu-hidden">
+            <h6 class="dropdown-header context-menu-header">
                 Add <span id="seniority-name">Staff</span>
             </h6>
-            <div class="dropdown-divider" style="margin: 0.25rem 0;"></div>
+            <div class="dropdown-divider context-menu-divider"></div>
             <div id="staff-list"></div>
         </div>
         <!-- Load external JavaScript -->
@@ -310,10 +219,4 @@
             }
         });
         </script>
-        <style media="print">
-.btn, .card-header .btn, nav, .no-print { display: none !important; }
-.card { border: 1px solid #000 !important; }
-table { page-break-inside: avoid; }
-td { page-break-inside: avoid; }
-        </style>
     {% endblock %}
