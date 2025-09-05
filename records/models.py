@@ -8,6 +8,7 @@ from django.utils import timezone
 class OnCallStaff(models.Model):
     assignment_id = models.CharField(max_length=50, unique=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    color = models.CharField(max_length=7, default='#6c757d', help_text="Hex color code for this staff member (e.g. #ff5733)")
 
     def __str__(self):
         return f"{self.assignment_id} - {self.user.get_full_name()}"
@@ -407,7 +408,13 @@ class TimeEntry(models.Model):
 
 class RotaEntry(models.Model):
     """Represents a single day's on-call rota"""
+    SHIFT_TYPE_CHOICES = [
+        ('normal', 'Normal'),
+        ('nhsp', 'NHSP'),
+    ]
+    
     date = models.DateField()
+    shift_type = models.CharField(max_length=10, choices=SHIFT_TYPE_CHOICES, default='normal', help_text="Type of shift for the entire day")
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
 
@@ -438,21 +445,19 @@ class RotaEntry(models.Model):
             return 'Weekday'
 
     def get_shifts_by_type(self):
-        """Get shifts grouped by shift type"""
-        shifts = self.shifts.all().select_related('staff')
-        normal_shifts = []
-        nhsp_shifts = []
+        """Get shifts grouped by shift type (all shifts on a day have the same type)"""
+        shifts = list(self.shifts.all().select_related('staff'))
         
-        for shift in shifts:
-            if shift.shift_type == 'nhsp':
-                nhsp_shifts.append(shift)
-            else:
-                normal_shifts.append(shift)
-        
-        return {
-            'normal': normal_shifts,
-            'nhsp': nhsp_shifts
-        }
+        if self.shift_type == 'nhsp':
+            return {
+                'normal': [],
+                'nhsp': shifts
+            }
+        else:
+            return {
+                'normal': shifts,
+                'nhsp': []
+            }
 
 
 class RotaShift(models.Model):
@@ -463,26 +468,20 @@ class RotaShift(models.Model):
         ('senior', 'Senior'),
     ]
 
-    SHIFT_TYPE_CHOICES = [
-        ('normal', 'Normal'),
-        ('nhsp', 'NHSP'),
-    ]
-
     rota_entry = models.ForeignKey(
         RotaEntry, on_delete=models.CASCADE, related_name='shifts'
     )
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     seniority_level = models.CharField(max_length=10, choices=SENIORITY_CHOICES)
-    shift_type = models.CharField(max_length=10, choices=SHIFT_TYPE_CHOICES, default='normal')
     notes = models.TextField(blank=True, help_text="Optional notes for this shift")
     created = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ['seniority_level', 'staff__assignment_id']
-        unique_together = ['rota_entry', 'staff', 'shift_type']
+        unique_together = ['rota_entry', 'staff']
 
     def __str__(self):
-        return f"{self.staff.assignment_id} - {self.rota_entry.date} ({self.get_seniority_level_display()}, {self.get_shift_type_display()})"
+        return f"{self.staff.assignment_id} - {self.rota_entry.date} ({self.get_seniority_level_display()})"
 
     @property
     def seniority_badge_class(self):

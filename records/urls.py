@@ -18,4 +18,7 @@ urlpatterns = [
     path('report/signoff/<int:year>/<int:month>/', views.signoff_report, name='signoff_report'),
     path('report/unsignoff/<int:year>/<int:month>/', views.unsignoff_report, name='unsignoff_report'),
     path('rota/', views.rota_calendar, name='rota_calendar'),
+    path('rota/add-staff/', views.add_staff_to_rota, name='add_staff_to_rota'),
+    path('rota/toggle-shift-type/', views.toggle_shift_type, name='toggle_shift_type'),
+    path('rota/clear-day/', views.clear_day_staff, name='clear_day_staff'),
 ]

@@ -39,20 +39,17 @@
                     <div class="d-flex align-items-center">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         <div>
-                            <strong>Report Pending Sign-off:</strong>
-                            {{ staff_signoff_summary.signed_off_count }}/{{ staff_signoff_summary.total_staff }} staff records signed off.
-                            {% if not staff_signoff_summary.all_signed_off %}
-                                {{ staff_signoff_summary.pending_count }} staff member{{ staff_signoff_summary.pending_count|pluralize }} still pending.
-                            {% endif %}
+                            <strong>{{ staff_signoff_summary.pending_count }} claim record{{ staff_signoff_summary.pending_count|pluralize }} pending sign-off.</strong>
                         </div>
                     </div>
                     <div>
                         {% if staff_signoff_summary.all_signed_off %}
-                            <a href="{% url 'signoff_report' report_month.year report_month.month %}" class="btn btn-success">
+                            <a href="{% url 'signoff_report' report_month.year report_month.month %}"
+                               class="btn btn-sm btn-success">
                                 <i class="bi bi-file-earmark-check"></i> Sign Off Report
                             </a>
                         {% else %}
-                            <a href="{% url 'signoff_management' %}" class="btn btn-outline-primary">
+                            <a href="{% url 'signoff_management' %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-arrow-right-circle"></i> Sign Off Records
                             </a>
                         {% endif %}

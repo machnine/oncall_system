@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
 from .models import OnCallStaff, TimeBlock, TimeEntry, MonthlySignOff, MonthlyReportSignOff, RotaEntry, RotaShift
 from .forms import TimeBlockForm, TimeBlockEditForm, TimeEntryForm
 from .utils.decorators import require_oncall_staff, require_staff_permission, check_month_not_signed_off, check_timeblock_not_signed_off
@@ -823,3 +826,164 @@ def rota_calendar(request):
     }
     
     return render(request, 'records/rota_calendar.html', context)
+
+
+@require_POST
+@require_oncall_staff
+def add_staff_to_rota(request):
+    """AJAX endpoint to add staff to a specific rota day and seniority level"""
+    try:
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        staff_id = data.get('staff_id')
+        seniority_level = data.get('seniority_level')
+        
+        if not all([date_str, staff_id, seniority_level]):
+            return JsonResponse({'error': 'Missing required data'}, status=400)
+        
+        # Parse date
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get staff object
+        staff = get_object_or_404(OnCallStaff, id=staff_id)
+        
+        # Get or create rota entry for this date
+        rota_entry, created = RotaEntry.objects.get_or_create(
+            date=date_obj,
+            defaults={
+                'shift_type': 'normal',
+                'day_type': None
+            }
+        )
+        
+        # Check if staff already has a shift for this date and seniority level
+        existing_shift = RotaShift.objects.filter(
+            rota_entry=rota_entry,
+            staff=staff,
+            seniority_level=seniority_level
+        ).first()
+        
+        if existing_shift:
+            return JsonResponse({'error': 'Staff already assigned to this level on this date'}, status=400)
+        
+        # Create new shift
+        shift = RotaShift.objects.create(
+            rota_entry=rota_entry,
+            staff=staff,
+            seniority_level=seniority_level
+        )
+        
+        # Return updated data for DOM update
+        return JsonResponse({
+            'success': True,
+            'shift': {
+                'id': shift.id,
+                'staff_id': staff.assignment_id,
+                'staff_name': staff.user.get_full_name(),
+                'staff_color': staff.color,
+                'seniority_level': seniority_level,
+                'notes': shift.notes or ''
+            },
+            'rota_entry_id': rota_entry.id,
+            'shift_type': rota_entry.shift_type
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+@require_oncall_staff
+def toggle_shift_type(request):
+    """AJAX endpoint to toggle shift type between normal and NHSP"""
+    try:
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        
+        if not date_str:
+            return JsonResponse({'error': 'Date is required'}, status=400)
+        
+        # Parse date
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get or create rota entry for this date
+        rota_entry, created = RotaEntry.objects.get_or_create(
+            date=date_obj,
+            defaults={
+                'shift_type': 'normal',
+                'day_type': None
+            }
+        )
+        
+        # Toggle shift type
+        if rota_entry.shift_type == 'normal':
+            rota_entry.shift_type = 'nhsp'
+        else:
+            rota_entry.shift_type = 'normal'
+        rota_entry.save()
+        
+        return JsonResponse({
+            'success': True,
+            'shift_type': rota_entry.shift_type,
+            'rota_entry_id': rota_entry.id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+@require_oncall_staff
+def clear_day_staff(request):
+    """AJAX endpoint to remove all staff from a specific date"""
+    try:
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        seniority_level = data.get('seniority_level')  # Optional: clear specific level only
+        
+        if not date_str:
+            return JsonResponse({'error': 'Date is required'}, status=400)
+        
+        # Parse date
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get rota entry for this date
+        try:
+            rota_entry = RotaEntry.objects.get(date=date_obj)
+        except RotaEntry.DoesNotExist:
+            return JsonResponse({'error': 'No rota entry found for this date'}, status=404)
+        
+        # Delete shifts
+        shifts_query = RotaShift.objects.filter(rota_entry=rota_entry)
+        
+        # If specific seniority level provided, filter by it
+        if seniority_level:
+            shifts_query = shifts_query.filter(seniority_level=seniority_level)
+        
+        deleted_count = shifts_query.count()
+        shifts_query.delete()
+        
+        # If all shifts are deleted, optionally delete the rota entry
+        if not rota_entry.shifts.exists():
+            rota_entry.delete()
+            rota_entry_id = None
+        else:
+            rota_entry_id = rota_entry.id
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_count': deleted_count,
+            'rota_entry_id': rota_entry_id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

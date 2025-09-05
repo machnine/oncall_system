@@ -1,181 +1,600 @@
 {% extends 'records/base.html' %}
-
 {% block title %}On-Call Rota - {{ current_month }}{% endblock %}
-
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center">
-                <h2><i class="bi bi-calendar3"></i> On-Call Rota</h2>
-            </div>
-            <div class="ms-3">{% include "records/partials/month_selector.html" %}</div>
-        </div>
-    </div>
-</div>
-
-<!-- Rota Legend -->
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <strong>Seniority Levels:</strong>
-                        <span class="badge bg-info ms-2">Trainee</span>
-                        <span class="badge bg-primary ms-1">On-Call</span>
-                        <span class="badge bg-success ms-1">Senior</span>
-                    </div>
-                    <div class="col-md-6 text-md-end">
-                        <strong>Shift Types:</strong>
-                        <span class="badge bg-secondary ms-2">Normal</span>
-                        <span class="badge bg-danger ms-1">NHSP</span>
-                        <span class="badge bg-warning text-dark ms-2">Bank Holiday</span>
-                    </div>
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <h2>
+                        <i class="bi bi-calendar3"></i> On-Call Rota
+                    </h2>
                 </div>
+                <div class="ms-3">{% include "records/partials/month_selector.html" %}</div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Calendar -->
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-bordered mb-0" style="table-layout: fixed;">
-                <thead class="table-light">
-                    <tr>
-                        <th class="text-center py-3" style="width: 14.28%;">Monday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Tuesday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Wednesday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Thursday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Friday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Saturday</th>
-                        <th class="text-center py-3" style="width: 14.28%;">Sunday</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for week in calendar_weeks %}
-                    <tr>
-                        {% for day in week %}
-                        <td class="p-2 align-top {% if day.is_today %}bg-light border-primary{% elif day.is_weekend %}bg-light{% endif %}" 
-                            style="height: 120px; min-height: 120px;">
-                            {% if day %}
-                                <!-- Day number -->
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <span class="fw-bold {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}">
-                                        {{ day.day_num }}
-                                    </span>
-                                    {% if day.is_bank_holiday %}
-                                        <span class="badge bg-warning text-dark" style="font-size: 0.6rem;">BH</span>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Staff assignments -->
-                                {% if day.shifts.normal or day.shifts.nhsp %}
-                                    <div class="small">
-                                        <!-- Normal shifts -->
-                                        {% for shift in day.shifts.normal %}
-                                            <div class="mb-1">
-                                                <span class="badge {{ shift.seniority_badge_class }}" style="font-size: 0.65rem;">
-                                                    {{ shift.staff.assignment_id }}
+    <!-- Calendar -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0" style="table-layout: fixed;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center py-3" style="width: 14.28%;">Monday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Tuesday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Wednesday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Thursday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Friday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Saturday</th>
+                            <th class="text-center py-3" style="width: 14.28%;">Sunday</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in calendar_weeks %}
+                            <tr>
+                                {% for day in week %}
+                                    <td class="p-2 align-top rota-day {% if day.is_today %}border-primary{% elif day.is_weekend %}bg-light{% endif %}"
+                                        style="height: 120px; min-height: 120px; {% if day.is_today %}background-color: rgba(13, 110, 253, 0.08); border: 2px solid var(--bs-primary) !important;{% endif %}"
+                                        data-date="{{ day.date|date:'Y-m-d' }}" 
+                                        data-rota-entry-id="{% if day.rota_entry %}{{ day.rota_entry.id }}{% endif %}"
+                                        data-shift-type="{% if day.rota_entry %}{{ day.rota_entry.shift_type }}{% else %}normal{% endif %}">
+                                        {% if day %}
+                                            <!-- Day number -->
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <span class="fw-bold {% if day.is_today %}text-primary{% elif day.is_weekend %}text-muted{% endif %}">
+                                                    {{ day.day_num }}
                                                 </span>
-                                                {% if shift.notes %}
-                                                    <i class="bi bi-info-circle text-muted" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
-                                                {% endif %}
+                                                <div>
+                                                    {% if day.rota_entry.shift_type == 'nhsp' %}
+                                                        <span class="badge badge-pill bg-danger me-1" style="font-size: 0.6rem; opacity: 0.7;">NHSP</span>
+                                                    {% endif %}
+                                                    {% if day.is_bank_holiday %}
+                                                        <span class="badge badge-pill bg-warning text-dark me-1" style="font-size: 0.6rem; opacity: 0.7;">BH</span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
-                                        {% endfor %}
-                                        
-                                        <!-- NHSP shifts -->
-                                        {% for shift in day.shifts.nhsp %}
-                                            <div class="mb-1">
-                                                <span class="badge bg-danger" style="font-size: 0.65rem;">
-                                                    <i class="bi bi-star-fill me-1"></i>{{ shift.staff.assignment_id }}
-                                                </span>
-                                                {% if shift.notes %}
-                                                    <i class="bi bi-info-circle text-muted" title="{{ shift.notes }}" data-bs-toggle="tooltip"></i>
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <!-- Empty day indicator -->
-                                    <div class="text-center text-muted mt-3" style="font-size: 0.8rem;">
-                                        <i class="bi bi-dash-circle-dotted"></i>
-                                        <br><small>No rota</small>
-                                    </div>
-                                {% endif %}
-                            {% endif %}
-                        </td>
+                                            <!-- Staff assignments organized by seniority level in rows -->
+                                            {% if day.rota_entry %}
+                                                <div class="pt-3">
+                                                    <!-- All shifts on a day have the same type, so we can just iterate through all shifts -->
+                                                    {% with all_shifts=day.rota_entry.shifts.all %}
+                                                        <!-- Trainee row -->
+                                                        <div class="mb-1 d-flex rota-row" style="height: 1.75rem;" data-seniority="1" data-seniority-name="Trainee">
+                                                            {% for shift in all_shifts %}
+                                                                {% if shift.seniority_level == '1' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center" 
+                                                                          style="font-size: 0.8rem; font-weight: 500;
+                                                                                 background-color: {{ shift.staff.color }}70; 
+                                                                                 color: #333;
+                                                                                 border-radius: 3px;
+                                                                                 flex: 1;
+                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
+                                                                        {{ shift.staff.assignment_id }}
+                                                                        {% if shift.notes %}
+                                                                            <i class="bi bi-info-circle ms-1" 
+                                                                               title="{{ shift.notes }}" 
+                                                                               data-bs-toggle="tooltip"></i>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                        <!-- On-Call row -->
+                                                        <div class="mb-1 d-flex rota-row" style="height: 1.75rem;" data-seniority="2" data-seniority-name="On-Call">
+                                                            {% for shift in all_shifts %}
+                                                                {% if shift.seniority_level == '2' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center" 
+                                                                          style="font-size: 0.8rem; font-weight: 500;
+                                                                                 background-color: {{ shift.staff.color }}70; 
+                                                                                 color: #333;
+                                                                                 border-radius: 3px;
+                                                                                 flex: 1;
+                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
+                                                                        {{ shift.staff.assignment_id }}
+                                                                        {% if shift.notes %}
+                                                                            <i class="bi bi-info-circle ms-1" 
+                                                                               title="{{ shift.notes }}" 
+                                                                               data-bs-toggle="tooltip"></i>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                        <!-- Senior row -->
+                                                        <div class="mb-1 d-flex rota-row" style="height: 1.75rem;" data-seniority="3" data-seniority-name="Senior">
+                                                            {% for shift in all_shifts %}
+                                                                {% if shift.seniority_level == '3' %}
+                                                                    <span class="text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center" 
+                                                                          style="font-size: 0.8rem; font-weight: 500;
+                                                                                 background-color: {{ shift.staff.color }}70; 
+                                                                                 color: #333;
+                                                                                 border-radius: 3px;
+                                                                                 flex: 1;
+                                                                                 {% if not forloop.last %}margin-right: 1px;{% endif %}">
+                                                                        {{ shift.staff.assignment_id }}
+                                                                        {% if shift.notes %}
+                                                                            <i class="bi bi-info-circle ms-1" 
+                                                                               title="{{ shift.notes }}" 
+                                                                               data-bs-toggle="tooltip"></i>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endwith %}
+                                                </div>
+                                            {% else %}
+                                                <!-- Empty day indicator -->
+                                                <div class="text-center text-muted mt-3" style="font-size: 0.8rem;">
+                                                    <i class="bi bi-dash-circle-dotted"></i>
+                                                    <br>
+                                                    <small>No rota</small>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
                         {% endfor %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Action Buttons -->
-<div class="row mt-4">
-    <div class="col-12 text-center">
-        <button class="btn btn-success" onclick="window.print()">
-            <i class="bi bi-printer"></i> Print Rota
-        </button>
-        <button class="btn btn-primary ms-2" onclick="alert('Rota editing functionality coming soon!')">
-            <i class="bi bi-pencil"></i> Edit Rota
-        </button>
-    </div>
-</div>
-
-<!-- Info Section -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-info-circle"></i> Rota Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Seniority Levels:</h6>
-                        <ul class="small">
-                            <li><span class="badge bg-info">Trainee</span> - Training staff under supervision</li>
-                            <li><span class="badge bg-primary">On-Call</span> - Standard on-call staff</li>
-                            <li><span class="badge bg-success">Senior</span> - Senior/experienced staff</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Shift Types:</h6>
-                        <ul class="small">
-                            <li><span class="badge bg-secondary">Normal</span> - Standard on-call shift</li>
-                            <li><span class="badge bg-danger"><i class="bi bi-star-fill"></i> NHSP</span> - NHSP specialist shift</li>
-                        </ul>
-                        <h6 class="mt-3">Special Days:</h6>
-                        <ul class="small">
-                            <li><span class="badge bg-warning text-dark">BH</span> - Bank Holiday (enhanced rates may apply)</li>
-                        </ul>
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <button class="btn btn-success" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print Rota
+            </button>
+            <button class="btn btn-primary ms-2" onclick="alert('Rota editing functionality coming soon!')">
+                <i class="bi bi-pencil"></i> Edit Rota
+            </button>
+        </div>
+    </div>
 
-<script>
+    <!-- Context Menu -->
+    <div id="contextMenu" class="dropdown-menu" style="display: none; position: absolute; z-index: 1000;">
+        <h6 class="dropdown-header">Add <span id="seniority-name">Staff</span></h6>
+        <div class="dropdown-divider"></div>
+        <div id="staff-list"></div>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item text-warning" href="#" id="toggle-shift-type">
+            <i class="bi bi-arrow-repeat"></i> <span id="shift-type-text">Make NHSP Day</span>
+        </a>
+        <a class="dropdown-item text-danger" href="#" id="clear-day">
+            <i class="bi bi-trash"></i> Clear All Staff
+        </a>
+    </div>
+
+    <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-});
-</script>
 
-<style media="print">
+    // Context menu functionality
+    let currentDay = null;
+    let currentSeniorityLevel = null;
+    let currentSeniorityName = null;
+    const contextMenu = document.getElementById('contextMenu');
+    
+    // Available staff data (will be populated by Django)
+    const availableStaff = [
+        {% for staff in all_staff %}
+        {
+            id: {{ staff.id }},
+            assignment_id: "{{ staff.assignment_id }}",
+            name: "{{ staff.user.get_full_name }}",
+            color: "{{ staff.color }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Right-click event handler for rota rows
+    document.querySelectorAll('.rota-row').forEach(rotaRow => {
+        rotaRow.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent event from bubbling to day cell
+            
+            currentDay = this.closest('.rota-day');
+            currentSeniorityLevel = this.dataset.seniority;
+            currentSeniorityName = this.dataset.seniorityName;
+            
+            // Position the context menu
+            const rect = contextMenu.getBoundingClientRect();
+            let x = e.pageX;
+            let y = e.pageY;
+            
+            // Prevent menu from going off-screen
+            if (x + rect.width > window.innerWidth) {
+                x = window.innerWidth - rect.width - 10;
+            }
+            if (y + rect.height > window.innerHeight) {
+                y = window.innerHeight - rect.height - 10;
+            }
+            
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            contextMenu.style.display = 'block';
+            
+            // Update context menu content
+            updateContextMenu();
+        });
+    });
+
+    // Fallback: Right-click on day (when clicking empty areas)
+    document.querySelectorAll('.rota-day').forEach(dayCell => {
+        dayCell.addEventListener('contextmenu', function(e) {
+            // Only handle if not clicking on a rota-row
+            if (!e.target.closest('.rota-row')) {
+                e.preventDefault();
+                currentDay = this;
+                currentSeniorityLevel = null;
+                currentSeniorityName = 'Day';
+                
+                // Position the context menu (same logic as above)
+                const rect = contextMenu.getBoundingClientRect();
+                let x = e.pageX;
+                let y = e.pageY;
+                
+                if (x + rect.width > window.innerWidth) {
+                    x = window.innerWidth - rect.width - 10;
+                }
+                if (y + rect.height > window.innerHeight) {
+                    y = window.innerHeight - rect.height - 10;
+                }
+                
+                contextMenu.style.left = x + 'px';
+                contextMenu.style.top = y + 'px';
+                contextMenu.style.display = 'block';
+                
+                updateContextMenu();
+            }
+        });
+    });
+
+    // Hide context menu when clicking elsewhere
+    document.addEventListener('click', function(e) {
+        if (!contextMenu.contains(e.target)) {
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    function updateContextMenu() {
+        const shiftType = currentDay.dataset.shiftType;
+        const shiftTypeToggle = document.getElementById('toggle-shift-type');
+        const shiftTypeText = document.getElementById('shift-type-text');
+        const seniorityNameSpan = document.getElementById('seniority-name');
+        
+        // Update seniority name in header
+        seniorityNameSpan.textContent = currentSeniorityName;
+        
+        // Update shift type toggle text
+        if (shiftType === 'nhsp') {
+            shiftTypeText.textContent = 'Make Normal Day';
+        } else {
+            shiftTypeText.textContent = 'Make NHSP Day';
+        }
+        
+        // Populate staff list for the specific seniority level
+        populateStaffList();
+    }
+
+    function populateStaffList() {
+        const container = document.getElementById('staff-list');
+        container.innerHTML = '';
+        
+        // If no specific seniority level selected, show seniority level selection first
+        if (!currentSeniorityLevel) {
+            const seniorityLevels = [
+                { level: '1', name: 'Trainee' },
+                { level: '2', name: 'On-Call' },
+                { level: '3', name: 'Senior' }
+            ];
+            
+            seniorityLevels.forEach(seniority => {
+                const seniorityItem = document.createElement('a');
+                seniorityItem.className = 'dropdown-item';
+                seniorityItem.href = '#';
+                seniorityItem.innerHTML = `<i class="bi bi-people"></i> Add ${seniority.name} Staff`;
+                
+                seniorityItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Set the seniority level and show staff for that level
+                    currentSeniorityLevel = seniority.level;
+                    currentSeniorityName = seniority.name;
+                    populateStaffList(); // Refresh the list with staff
+                });
+                
+                container.appendChild(seniorityItem);
+            });
+            return;
+        }
+        
+        // Show staff for the selected seniority level
+        const staffToShow = availableStaff;
+        
+        if (staffToShow.length === 0) {
+            const noStaffItem = document.createElement('div');
+            noStaffItem.className = 'dropdown-item-text text-muted';
+            noStaffItem.textContent = 'No staff available';
+            container.appendChild(noStaffItem);
+            return;
+        }
+        
+        // Add a back button if we came from seniority selection
+        if (currentSeniorityName === 'Day') {
+            const backItem = document.createElement('a');
+            backItem.className = 'dropdown-item text-secondary';
+            backItem.href = '#';
+            backItem.innerHTML = '<i class="bi bi-arrow-left"></i> Back to levels';
+            backItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                currentSeniorityLevel = null;
+                currentSeniorityName = 'Day';
+                populateStaffList();
+            });
+            container.appendChild(backItem);
+            
+            const divider = document.createElement('div');
+            divider.className = 'dropdown-divider';
+            container.appendChild(divider);
+        }
+        
+        staffToShow.forEach(staff => {
+            const staffItem = document.createElement('a');
+            staffItem.className = 'dropdown-item d-flex align-items-center';
+            staffItem.href = '#';
+            staffItem.innerHTML = `
+                <div class="me-2" style="width: 12px; height: 12px; background-color: ${staff.color}70; border-radius: 2px;"></div>
+                ${staff.assignment_id} - ${staff.name}
+            `;
+            
+            staffItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                addStaffToDay(staff);
+            });
+            
+            container.appendChild(staffItem);
+        });
+    }
+
+    function addStaffToDay(staff) {
+        // By this point, currentSeniorityLevel should always be set
+        if (!currentSeniorityLevel) {
+            alert('Please select a seniority level first');
+            return;
+        }
+        
+        const formData = {
+            date: currentDay.dataset.date,
+            staff_id: staff.id,
+            seniority_level: currentSeniorityLevel
+        };
+
+        fetch('/rota/add-staff/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the DOM with the new staff member
+                updateDayDOM(data);
+                console.log('Staff added successfully');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error adding staff:', error);
+            alert('An error occurred while adding staff');
+        });
+        
+        contextMenu.style.display = 'none';
+    }
+
+    // Shift type toggle
+    document.getElementById('toggle-shift-type').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            date: currentDay.dataset.date
+        };
+
+        fetch('/rota/toggle-shift-type/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the day's shift type
+                currentDay.dataset.shiftType = data.shift_type;
+                currentDay.dataset.rotaEntryId = data.rota_entry_id;
+                
+                // Update NHSP badge visibility
+                updateNHSPBadge(currentDay, data.shift_type);
+                console.log('Shift type toggled successfully');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling shift type:', error);
+            alert('An error occurred while toggling shift type');
+        });
+        
+        contextMenu.style.display = 'none';
+    });
+
+    // Clear day
+    document.getElementById('clear-day').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to remove all staff from this day?')) {
+            const formData = {
+                date: currentDay.dataset.date
+            };
+
+            fetch('/rota/clear-day/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear all staff from the day's DOM
+                    clearDayDOM(currentDay);
+                    console.log('Day cleared successfully, removed:', data.deleted_count, 'staff');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing day:', error);
+                alert('An error occurred while clearing the day');
+            });
+        }
+        contextMenu.style.display = 'none';
+    });
+
+    // DOM update functions
+    function updateDayDOM(data) {
+        const shift = data.shift;
+        const seniorityLevel = shift.seniority_level;
+        
+        // Update day data attributes
+        currentDay.dataset.rotaEntryId = data.rota_entry_id;
+        currentDay.dataset.shiftType = data.shift_type;
+        
+        // Find the correct seniority row
+        const rotaRow = currentDay.querySelector(`.rota-row[data-seniority="${seniorityLevel}"]`);
+        
+        if (rotaRow) {
+            // Create new staff span
+            const staffSpan = document.createElement('span');
+            staffSpan.className = 'text-center text-truncate py-1 px-2 d-flex align-items-center justify-content-center';
+            staffSpan.style.cssText = `
+                font-size: 0.8rem; 
+                font-weight: 500;
+                background-color: ${shift.staff_color}70; 
+                color: #333;
+                border-radius: 3px;
+                flex: 1;
+                margin-right: 1px;
+            `;
+            staffSpan.textContent = shift.staff_id;
+            
+            // Add notes icon if there are notes
+            if (shift.notes) {
+                const notesIcon = document.createElement('i');
+                notesIcon.className = 'bi bi-info-circle ms-1';
+                notesIcon.title = shift.notes;
+                notesIcon.setAttribute('data-bs-toggle', 'tooltip');
+                staffSpan.appendChild(notesIcon);
+                
+                // Reinitialize tooltip
+                new bootstrap.Tooltip(notesIcon);
+            }
+            
+            // Remove margin from last child
+            const existingSpans = rotaRow.querySelectorAll('span');
+            if (existingSpans.length > 0) {
+                existingSpans[existingSpans.length - 1].style.marginRight = '1px';
+            }
+            staffSpan.style.marginRight = '0px';
+            
+            // Add to row
+            rotaRow.appendChild(staffSpan);
+            
+            // Make sure parent div is visible (remove empty day indicator if present)
+            const emptyIndicator = currentDay.querySelector('.text-center.text-muted');
+            if (emptyIndicator) {
+                emptyIndicator.remove();
+            }
+            
+            // Ensure rota content div is visible
+            let rotaContent = currentDay.querySelector('.pt-3');
+            if (!rotaContent) {
+                // Create rota content structure
+                rotaContent = document.createElement('div');
+                rotaContent.className = 'pt-3';
+                currentDay.appendChild(rotaContent);
+            }
+        }
+        
+        // Update NHSP badge if needed
+        updateNHSPBadge(currentDay, data.shift_type);
+    }
+    
+    function updateNHSPBadge(dayCell, shiftType) {
+        const badgeContainer = dayCell.querySelector('.d-flex.justify-content-between.align-items-start.mb-1 > div');
+        let nhspBadge = badgeContainer.querySelector('.bg-danger');
+        
+        if (shiftType === 'nhsp') {
+            if (!nhspBadge) {
+                nhspBadge = document.createElement('span');
+                nhspBadge.className = 'badge badge-pill bg-danger me-1';
+                nhspBadge.style.cssText = 'font-size: 0.6rem; opacity: 0.7;';
+                nhspBadge.textContent = 'NHSP';
+                badgeContainer.insertBefore(nhspBadge, badgeContainer.firstChild);
+            }
+        } else {
+            if (nhspBadge) {
+                nhspBadge.remove();
+            }
+        }
+    }
+    
+    function clearDayDOM(dayCell) {
+        // Clear all staff from all seniority rows
+        const rotaRows = dayCell.querySelectorAll('.rota-row');
+        rotaRows.forEach(row => {
+            const staffSpans = row.querySelectorAll('span');
+            staffSpans.forEach(span => span.remove());
+        });
+        
+        // Add empty day indicator
+        const rotaContent = dayCell.querySelector('.pt-3');
+        if (rotaContent) {
+            rotaContent.innerHTML = `
+                <div class="text-center text-muted mt-3" style="font-size: 0.8rem;">
+                    <i class="bi bi-dash-circle-dotted"></i>
+                    <br>
+                    <small>No rota</small>
+                </div>
+            `;
+        }
+        
+        // Clear data attributes
+        dayCell.dataset.rotaEntryId = '';
+        dayCell.dataset.shiftType = 'normal';
+        
+        // Remove NHSP badge
+        updateNHSPBadge(dayCell, 'normal');
+    }
+});
+    </script>
+    <style media="print">
 .btn, .card-header .btn, nav, .no-print { display: none !important; }
 .card { border: 1px solid #000 !important; }
 table { page-break-inside: avoid; }
 td { page-break-inside: avoid; }
-</style>
+    </style>
 {% endblock %}
