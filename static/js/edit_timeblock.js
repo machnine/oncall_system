@@ -88,10 +88,10 @@ function initializeEditTimeblock(existingAssignments = []) {
     console.log('DOM ready - initializing assignment management for edit');
     console.log('Loaded', existingAssignments.length, 'existing assignments');
     
-    // Initialize AssignmentManager with existing assignments and logging
+    // Initialize AssignmentManager with existing assignments
     assignmentManager = new AssignmentManager({
         initialAssignments: existingAssignments,
-        enableLogging: true
+        enableLogging: false  // Disable debug logging
     });
     
     // Make globally accessible for onclick handlers

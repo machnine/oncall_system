@@ -710,3 +710,14 @@ document.addEventListener('DOMContentLoaded', function() {
         window.rotaCalendar = new RotaCalendar(availableStaff, csrfToken, staffBySeniority);
     };
 });
+
+// Global initialization function for template usage
+window.initializeRotaCalendar = function(availableStaff, staffBySeniority, csrfToken) {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.initRotaCalendar) {
+            window.initRotaCalendar(availableStaff, csrfToken, staffBySeniority);
+        } else {
+            console.error('RotaCalendar not found. Make sure rota_calendar.js is loaded first.');
+        }
+    });
+};

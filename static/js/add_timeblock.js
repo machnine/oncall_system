@@ -9,9 +9,9 @@ let assignmentManager;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM ready - initializing assignment management');
     
-    // Initialize AssignmentManager with debug logging enabled
+    // Initialize AssignmentManager
     assignmentManager = new AssignmentManager({
-        enableLogging: true
+        enableLogging: false  // Disable debug logging
     });
     
     // Make globally accessible for onclick handlers
