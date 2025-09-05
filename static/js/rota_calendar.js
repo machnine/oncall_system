@@ -271,8 +271,8 @@ class RotaCalendar {
         
         if (staffToShow.length === 0) {
             const noStaffItem = document.createElement('div');
-            noStaffItem.className = 'dropdown-item-text text-muted';
-            noStaffItem.textContent = `No ${this.currentSeniorityName} staff available`;
+            noStaffItem.className = 'dropdown-item-text text-muted';            
+            noStaffItem.textContent = `No ${this.currentSeniorityName} available`;
             container.appendChild(noStaffItem);
             return;
         }
