@@ -1,11 +1,48 @@
 """Data Models"""
 
+from calendar import month_name
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+
+from .utils.bank_holidays import is_bank_holiday
+
+
+# Assignment Type Configuration - This can be moved to a database table later if needed
+ASSIGNMENT_TYPE_CONFIG = {
+    "donor": {
+        "name": "Donor",
+        "color": "success",
+        "icon": "bi-person-check",
+        "description": "Blood/organ donor assignments",
+    },
+    "recipient": {
+        "name": "Recipient",
+        "color": "info",
+        "icon": "bi-person-fill",
+        "description": "Blood/organ recipient assignments",
+    },
+    "lab_task": {
+        "name": "Lab Task",
+        "color": "warning",
+        "icon": "bi-thermometer-low",
+        "description": "Laboratory task assignments",
+    },
+}
+
+BOOTSTRAP_COLORS = [
+    ("primary", "Primary (Blue)"),
+    ("secondary", "Secondary (Gray)"),
+    ("success", "Success (Green)"),
+    ("danger", "Danger (Red)"),
+    ("warning", "Warning (Yellow)"),
+    ("info", "Info (Cyan)"),
+    ("light", "Light"),
+    ("dark", "Dark"),
+]
 
 
 class OnCallStaff(models.Model):
@@ -42,17 +79,6 @@ class OnCallStaff(models.Model):
 
 
 class WorkMode(models.Model):
-    BOOTSTRAP_COLORS = [
-        ("primary", "Primary (Blue)"),
-        ("secondary", "Secondary (Gray)"),
-        ("success", "Success (Green)"),
-        ("danger", "Danger (Red)"),
-        ("warning", "Warning (Yellow)"),
-        ("info", "Info (Cyan)"),
-        ("light", "Light"),
-        ("dark", "Dark"),
-    ]
-
     name = models.CharField(max_length=50, unique=True)
     color = models.CharField(max_length=20, choices=BOOTSTRAP_COLORS, default="primary")
 
@@ -61,16 +87,7 @@ class WorkMode(models.Model):
 
 
 class TaskType(models.Model):
-    BOOTSTRAP_COLORS = [
-        ("primary", "Primary (Blue)"),
-        ("secondary", "Secondary (Gray)"),
-        ("success", "Success (Green)"),
-        ("danger", "Danger (Red)"),
-        ("warning", "Warning (Yellow)"),
-        ("info", "Info (Cyan)"),
-        ("light", "Light"),
-        ("dark", "Dark"),
-    ]
+    """Type of task performed during on-call time entry"""
 
     name = models.CharField(max_length=100, unique=True)
     color = models.CharField(
@@ -82,16 +99,7 @@ class TaskType(models.Model):
 
 
 class DayType(models.Model):
-    BOOTSTRAP_COLORS = [
-        ("primary", "Primary (Blue)"),
-        ("secondary", "Secondary (Gray)"),
-        ("success", "Success (Green)"),
-        ("danger", "Danger (Red)"),
-        ("warning", "Warning (Yellow)"),
-        ("info", "Info (Cyan)"),
-        ("light", "Light"),
-        ("dark", "Dark"),
-    ]
+    """Day type for TimeBlock (e.g. Weekday, Saturday, Sunday)"""
 
     name = models.CharField(max_length=50, unique=True)
     color = models.CharField(max_length=20, choices=BOOTSTRAP_COLORS, default="info")
@@ -190,29 +198,6 @@ class LabTask(models.Model):
         return self.name
 
 
-# Assignment Type Configuration - This can be moved to a database table later if needed
-ASSIGNMENT_TYPE_CONFIG = {
-    "donor": {
-        "name": "Donor",
-        "color": "success",
-        "icon": "bi-person-check",
-        "description": "Blood/organ donor assignments",
-    },
-    "recipient": {
-        "name": "Recipient",
-        "color": "info",
-        "icon": "bi-person-fill",
-        "description": "Blood/organ recipient assignments",
-    },
-    "lab_task": {
-        "name": "Lab Task",
-        "color": "warning",
-        "icon": "bi-thermometer-low",
-        "description": "Laboratory task assignments",
-    },
-}
-
-
 class Assignment(models.Model):
     """Links TimeBlock to entities"""
 
@@ -305,8 +290,6 @@ class MonthlySignOff(models.Model):
     @property
     def month_name(self):
         """Return the name of the month"""
-        from calendar import month_name
-
         return month_name[self.month]
 
     @classmethod
@@ -355,8 +338,6 @@ class MonthlyReportSignOff(models.Model):
     @property
     def month_name(self):
         """Return the name of the month"""
-        from calendar import month_name
-
         return month_name[self.month]
 
     @classmethod
@@ -388,13 +369,19 @@ class MonthlyReportSignOff(models.Model):
 
 
 class TimeEntry(models.Model):
+    """
+    Represents a single time entry for a staff member during an on-call time block
+    """
+
     timeblock = models.ForeignKey(
         TimeBlock, on_delete=models.CASCADE, related_name="time_entries"
     )
     time_started = models.TimeField()
     time_ended = models.TimeField()
     task = models.ForeignKey(TaskType, on_delete=models.CASCADE)
-    details = models.TextField(blank=True, help_text="Optional details about this time entry")
+    details = models.TextField(
+        blank=True, help_text="Optional details about this time entry"
+    )
     work_mode = models.ForeignKey(WorkMode, on_delete=models.CASCADE)
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
@@ -413,8 +400,6 @@ class TimeEntry(models.Model):
         return round(duration.total_seconds() / 3600, 2)
 
     def clean(self):
-        from django.core.exceptions import ValidationError
-
         # Basic validation - end time should be different from start time
         if self.time_started == self.time_ended:
             raise ValidationError("Start time and end time cannot be the same.")
@@ -426,17 +411,11 @@ class TimeEntry(models.Model):
 class RotaEntry(models.Model):
     """Represents a single day's on-call rota"""
 
-    SHIFT_TYPE_CHOICES = [
-        ("normal", "Normal"),
-        ("nhsp", "NHSP"),
-    ]
+    SHIFT_TYPE_CHOICES = [("normal", "Normal"), ("nhsp", "NHSP")]
 
     date = models.DateField()
     shift_type = models.CharField(
-        max_length=10,
-        choices=SHIFT_TYPE_CHOICES,
-        default="normal",
-        help_text="Type of shift for the entire day",
+        max_length=10, choices=SHIFT_TYPE_CHOICES, default="normal"
     )
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
@@ -452,8 +431,6 @@ class RotaEntry(models.Model):
     @property
     def is_bank_holiday(self):
         """Check if this date is a bank holiday"""
-        from .utils.bank_holidays import is_bank_holiday
-
         return is_bank_holiday(self.date)
 
     @property

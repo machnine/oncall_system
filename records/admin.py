@@ -62,22 +62,26 @@ class OnCallStaffAdmin(admin.ModelAdmin):
 @admin.register(WorkMode)
 class WorkModeAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
-    search_fields = ("name",)    
+    search_fields = ("name",)
 
 
 @admin.register(TaskType)
 class TaskTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
     search_fields = ("name",)
-    list_display = ("name", "color")
-    search_fields = ("name",)    
 
 
 @admin.register(DayType)
 class DayTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
     search_fields = ("name",)
-    list_filter = ("color",)
+
+
+@admin.register(LabTask)
+class LabTaskAdmin(admin.ModelAdmin):
+    list_display = ("name", "created")
+    search_fields = ("name",)
+    ordering = ("name",)
 
 
 @admin.register(Donor)
@@ -94,13 +98,6 @@ class RecipientAdmin(admin.ModelAdmin):
     search_fields = ("recipient_id", "name")
     list_filter = ("created",)
     ordering = ("recipient_id",)
-
-
-@admin.register(LabTask)
-class LabTaskAdmin(admin.ModelAdmin):
-    list_display = ("name", "created")
-    search_fields = ("name",)    
-    ordering = ("name",)
 
 
 class TimeEntryInline(admin.TabularInline):
@@ -124,14 +121,7 @@ class AssignmentInline(admin.TabularInline):
 
 @admin.register(TimeBlock)
 class TimeBlockAdmin(admin.ModelAdmin):
-    list_display = (
-        "staff",
-        "date",
-        "day_type",
-        "get_total_hours",
-        "get_block_claim",
-        "get_assignment_count",
-    )
+    list_display = ("staff", "date", "day_type", "get_total_hours", "get_block_claim")
     list_filter = ("day_type", "date", "staff")
     search_fields = ("staff__assignment_id", "staff__user__username")
     date_hierarchy = "date"
@@ -184,7 +174,7 @@ class TimeEntryAdmin(admin.ModelAdmin):
         "work_mode",
         "get_hours",
     )
-    list_filter = ("work_mode", "task", "timeblock__day_type", "timeblock__date")
+    list_filter = ("timeblock__day_type", "timeblock__date")
     search_fields = ("timeblock__staff__assignment_id", "task__name", "work_mode__name")
     date_hierarchy = "timeblock__date"
     readonly_fields = ("get_hours",)
@@ -204,7 +194,7 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
         "signed_off_at",
         "get_records_count",
     )
-    list_filter = ("year", "month", "signed_off_by", "signed_off_at")
+    list_filter = ("year", "month")
     search_fields = (
         "staff__assignment_id",
         "staff__user__username",
