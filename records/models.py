@@ -1,37 +1,44 @@
+"""Data Models"""
+
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 class OnCallStaff(models.Model):
+    """
+    Model representing an on-call staff member.
+    """
+
     SENIORITY_CHOICES = [
-        ('trainee', 'Trainee'),
-        ('oncall', 'On-Call'),
-        ('senior', 'Senior'),
+        ("trainee", "Trainee"),
+        ("oncall", "On-Call"),
+        ("senior", "Senior"),
     ]
-    
+
     assignment_id = models.CharField(max_length=50, unique=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    color = models.CharField(max_length=7, default='#6c757d', help_text="Hex color code for this staff member (e.g. #ff5733)")
+    color = models.CharField(
+        max_length=7,
+        default="#6c757d",
+        help_text="Hex color code for this staff member (e.g. #ff5733)",
+    )
     seniority_level = models.CharField(
-        max_length=10, 
-        choices=SENIORITY_CHOICES, 
-        default='trainee',
-        help_text="Seniority level of this staff member"
+        max_length=10,
+        choices=SENIORITY_CHOICES,
+        default="trainee",
+        help_text="Seniority level of this staff member",
     )
 
     def __str__(self):
         return f"{self.assignment_id} - {self.user.get_full_name()} ({self.get_seniority_level_display()})"
 
-    def seniority_badge_class(self):
-        """Get Bootstrap badge class for seniority level"""
-        return {
-            'trainee': 'bg-info',
-            'oncall': 'bg-warning', 
-            'senior': 'bg-success'
-        }.get(self.seniority_level, 'bg-secondary')
+    class Meta:
+        verbose_name = "On-call Staff"
+        verbose_name_plural = "On-call Staff"
 
 
 class WorkMode(models.Model):
@@ -101,40 +108,25 @@ class Detail(models.Model):
 
 
 class TimeBlock(models.Model):
-    ONCALL_TYPE_CHOICES = [
-        ('normal', 'Normal'),
-        ('nhsp', 'NHSP'),
-    ]
-    
+    """
+    Model representing a block of time recorded for actual on-call activities.
+    """
+
+    ONCALL_TYPE_CHOICES = [("normal", "Normal"), ("nhsp", "NHSP")]
+
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     date = models.DateField()
     day_type = models.ForeignKey(
         DayType, on_delete=models.CASCADE, null=True, blank=True
     )
     oncall_type = models.CharField(
-        max_length=20, 
-        choices=ONCALL_TYPE_CHOICES, 
-        default='normal',
-        help_text="Type of on-call duty"
+        max_length=20, choices=ONCALL_TYPE_CHOICES, default="normal"
     )
-    claim = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Total claim hours for this block",
-    )
+    claim = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        # Removed unique_together to allow multiple blocks per day
-        pass
-
     def clean(self):
-        from django.core.exceptions import ValidationError
-        from django.utils import timezone
-
         # Prevent future dates
         if self.date and self.date > timezone.now().date():
             raise ValidationError("Block date cannot be in the future.")
@@ -193,12 +185,12 @@ class Recipient(models.Model):
 
 
 class LabTask(models.Model):
-    name = models.CharField(
-        max_length=100, unique=True, help_text="Lab task name/description"
-    )
-    description = models.TextField(
-        blank=True, help_text="Detailed description of the lab task"
-    )
+    """
+    Model representing a task other than donor or recipient assignments.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
     created = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -242,9 +234,7 @@ class Assignment(models.Model):
     )
     entity_type = models.CharField(max_length=20, choices=ENTITY_TYPES)
     entity_id = models.CharField(max_length=50, help_text="ID of the assigned entity")
-    notes = models.TextField(
-        blank=True, help_text="Notes about this assignment during this time block"
-    )
+    notes = models.TextField(blank=True)
     color = models.CharField(
         max_length=20,
         default="primary",
@@ -298,34 +288,39 @@ class Assignment(models.Model):
 
 class MonthlySignOff(models.Model):
     """Monthly sign-off records to lock editing of time blocks and entries"""
-    
-    staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE, related_name="monthly_signoffs")
+
+    staff = models.ForeignKey(
+        OnCallStaff, on_delete=models.CASCADE, related_name="monthly_signoffs"
+    )
     year = models.IntegerField()
     month = models.IntegerField()  # 1-12
-    signed_off_by = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE, related_name="signoffs_given")
+    signed_off_by = models.ForeignKey(
+        OnCallStaff, on_delete=models.CASCADE, related_name="signoffs_given"
+    )
     signed_off_at = models.DateTimeField(default=timezone.now)
     notes = models.TextField(blank=True, help_text="Optional notes about this sign-off")
-    
+
     class Meta:
         unique_together = ["staff", "year", "month"]
         verbose_name = "Monthly Sign-Off"
         verbose_name_plural = "Monthly Sign-Offs"
         ordering = ["-year", "-month", "staff__assignment_id"]
-    
+
     def __str__(self):
         return f"{self.staff.assignment_id} - {self.year}/{self.month:02d} signed off by {self.signed_off_by.assignment_id}"
-    
+
     @property
     def month_name(self):
         """Return the name of the month"""
         from calendar import month_name
+
         return month_name[self.month]
-    
+
     @classmethod
     def is_month_signed_off(cls, staff, year, month):
         """Check if a specific month is signed off for a staff member"""
         return cls.objects.filter(staff=staff, year=year, month=month).exists()
-    
+
     @classmethod
     def get_signoff_for_month(cls, staff, year, month):
         """Get the sign-off record for a specific month, or None if not signed off"""
@@ -337,36 +332,45 @@ class MonthlySignOff(models.Model):
 
 class MonthlyReportSignOff(models.Model):
     """Monthly report sign-off records to lock entire monthly reports for submission"""
-    
+
     year = models.IntegerField()
     month = models.IntegerField()  # 1-12
-    signed_off_by = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE, related_name="report_signoffs_given")
+    signed_off_by = models.ForeignKey(
+        OnCallStaff, on_delete=models.CASCADE, related_name="report_signoffs_given"
+    )
     signed_off_at = models.DateTimeField(default=timezone.now)
     notes = models.TextField(blank=True, help_text="Notes about this report sign-off")
-    total_staff_count = models.IntegerField(help_text="Number of staff included in this report")
-    total_hours = models.DecimalField(max_digits=8, decimal_places=2, help_text="Total hours for all staff")
-    total_claims = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total claims for all staff")
-    
+    total_staff_count = models.IntegerField(
+        help_text="Number of staff included in this report"
+    )
+    total_hours = models.DecimalField(
+        max_digits=8, decimal_places=2, help_text="Total hours for all staff"
+    )
+    total_claims = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text="Total claims for all staff"
+    )
+
     class Meta:
         unique_together = ["year", "month"]
         verbose_name = "Monthly Report Sign-Off"
         verbose_name_plural = "Monthly Report Sign-Offs"
         ordering = ["-year", "-month"]
-    
+
     def __str__(self):
         return f"Monthly Report {self.year}/{self.month:02d} signed off by {self.signed_off_by.assignment_id}"
-    
+
     @property
     def month_name(self):
         """Return the name of the month"""
         from calendar import month_name
+
         return month_name[self.month]
-    
+
     @classmethod
     def is_report_signed_off(cls, year, month):
         """Check if a monthly report is signed off"""
         return cls.objects.filter(year=year, month=month).exists()
-    
+
     @classmethod
     def get_report_signoff(cls, year, month):
         """Get the report sign-off record for a specific month, or None if not signed off"""
@@ -380,13 +384,13 @@ class MonthlyReportSignOff(models.Model):
         staff_signoffs = MonthlySignOff.objects.filter(year=self.year, month=self.month)
         total_staff = OnCallStaff.objects.count()
         signed_off_count = staff_signoffs.count()
-        
+
         return {
-            'signed_off_count': signed_off_count,
-            'total_staff': total_staff,
-            'pending_count': total_staff - signed_off_count,
-            'all_signed_off': signed_off_count == total_staff,
-            'staff_signoffs': staff_signoffs
+            "signed_off_count": signed_off_count,
+            "total_staff": total_staff,
+            "pending_count": total_staff - signed_off_count,
+            "all_signed_off": signed_off_count == total_staff,
+            "staff_signoffs": staff_signoffs,
         }
 
 
@@ -428,20 +432,26 @@ class TimeEntry(models.Model):
 
 class RotaEntry(models.Model):
     """Represents a single day's on-call rota"""
+
     SHIFT_TYPE_CHOICES = [
-        ('normal', 'Normal'),
-        ('nhsp', 'NHSP'),
+        ("normal", "Normal"),
+        ("nhsp", "NHSP"),
     ]
-    
+
     date = models.DateField()
-    shift_type = models.CharField(max_length=10, choices=SHIFT_TYPE_CHOICES, default='normal', help_text="Type of shift for the entire day")
+    shift_type = models.CharField(
+        max_length=10,
+        choices=SHIFT_TYPE_CHOICES,
+        default="normal",
+        help_text="Type of shift for the entire day",
+    )
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Rota entries"
-        ordering = ['date']
-        unique_together = ['date']
+        ordering = ["date"]
+        unique_together = ["date"]
 
     def __str__(self):
         return f"Rota for {self.date.strftime('%d/%m/%Y')}"
@@ -450,46 +460,42 @@ class RotaEntry(models.Model):
     def is_bank_holiday(self):
         """Check if this date is a bank holiday"""
         from .utils.bank_holidays import is_bank_holiday
+
         return is_bank_holiday(self.date)
 
     @property
     def day_type(self):
         """Get the day type (Weekday/Saturday/Sunday/BankHoliday)"""
         if self.is_bank_holiday:
-            return 'BankHoliday'
+            return "BankHoliday"
         elif self.date.weekday() == 5:  # Saturday
-            return 'Saturday'
+            return "Saturday"
         elif self.date.weekday() == 6:  # Sunday
-            return 'Sunday'
+            return "Sunday"
         else:
-            return 'Weekday'
+            return "Weekday"
 
     def get_shifts_by_type(self):
         """Get shifts grouped by shift type (all shifts on a day have the same type)"""
-        shifts = list(self.shifts.all().select_related('staff'))
-        
-        if self.shift_type == 'nhsp':
-            return {
-                'normal': [],
-                'nhsp': shifts
-            }
+        shifts = list(self.shifts.all().select_related("staff"))
+
+        if self.shift_type == "nhsp":
+            return {"normal": [], "nhsp": shifts}
         else:
-            return {
-                'normal': shifts,
-                'nhsp': []
-            }
+            return {"normal": shifts, "nhsp": []}
 
 
 class RotaShift(models.Model):
     """Individual shift assignment within a rota entry"""
+
     SENIORITY_CHOICES = [
-        ('trainee', 'Trainee'),
-        ('oncall', 'On-Call'),
-        ('senior', 'Senior'),
+        ("trainee", "Trainee"),
+        ("oncall", "On-Call"),
+        ("senior", "Senior"),
     ]
 
     rota_entry = models.ForeignKey(
-        RotaEntry, on_delete=models.CASCADE, related_name='shifts'
+        RotaEntry, on_delete=models.CASCADE, related_name="shifts"
     )
     staff = models.ForeignKey(OnCallStaff, on_delete=models.CASCADE)
     seniority_level = models.CharField(max_length=10, choices=SENIORITY_CHOICES)
@@ -497,25 +503,8 @@ class RotaShift(models.Model):
     created = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        ordering = ['seniority_level', 'staff__assignment_id']
-        unique_together = ['rota_entry', 'staff']
+        ordering = ["seniority_level", "staff__assignment_id"]
+        unique_together = ["rota_entry", "staff"]
 
     def __str__(self):
         return f"{self.staff.assignment_id} - {self.rota_entry.date} ({self.get_seniority_level_display()})"
-
-    @property
-    def seniority_badge_class(self):
-        """Get Bootstrap badge class for seniority level"""
-        return {
-            'trainee': 'bg-info',
-            'oncall': 'bg-primary', 
-            'senior': 'bg-success'
-        }.get(self.seniority_level, 'bg-secondary')
-
-    @property
-    def shift_type_badge_class(self):
-        """Get Bootstrap badge class for shift type"""
-        return {
-            'normal': 'bg-secondary',
-            'nhsp': 'bg-danger'
-        }.get(self.shift_type, 'bg-secondary')

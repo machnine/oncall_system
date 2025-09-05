@@ -1,3 +1,5 @@
+"""Admin configurations"""
+
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
@@ -21,7 +23,17 @@ from .models import (
 
 @admin.register(OnCallStaff)
 class OnCallStaffAdmin(admin.ModelAdmin):
-    list_display = ("assignment_id", "get_full_name", "get_username", "seniority_level", "color_preview")
+    """
+    Admin interface for On-call Staff model.
+    """
+
+    list_display = (
+        "assignment_id",
+        "get_full_name",
+        "get_username",
+        "seniority_level",
+        "color_preview",
+    )
     search_fields = (
         "assignment_id",
         "user__username",
@@ -31,30 +43,27 @@ class OnCallStaffAdmin(admin.ModelAdmin):
     list_filter = ("seniority_level",)
     fields = ("assignment_id", "user", "color", "seniority_level")
 
+    @admin.display(description="Full Name")
     def get_full_name(self, obj):
         return obj.user.get_full_name()
 
-    get_full_name.short_description = "Full Name"
-
+    @admin.display(description="Username")
     def get_username(self, obj):
         return obj.user.username
 
-    get_username.short_description = "Username"
-
+    @admin.display(description="Color")
     def color_preview(self, obj):
         return format_html(
             '<div style="width: 20px; height: 20px; background-color: {}; border: 1px solid #ccc; display: inline-block; margin-right: 5px;"></div>{}',
             obj.color,
-            obj.color)
-
-    color_preview.short_description = "Color"
+            obj.color,
+        )
 
 
 @admin.register(WorkMode)
 class WorkModeAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
-    search_fields = ("name",)
-    list_filter = ("color",)
+    search_fields = ("name",)    
 
 
 @admin.register(TaskType)
@@ -62,8 +71,7 @@ class TaskTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
     search_fields = ("name",)
     list_display = ("name", "color")
-    search_fields = ("name",)
-    list_filter = ("color",)
+    search_fields = ("name",)    
 
 
 @admin.register(DayType)
@@ -92,8 +100,7 @@ class RecipientAdmin(admin.ModelAdmin):
 @admin.register(LabTask)
 class LabTaskAdmin(admin.ModelAdmin):
     list_display = ("name", "created")
-    search_fields = ("name", "description")
-    list_filter = ("created",)
+    search_fields = ("name",)    
     ordering = ("name",)
 
 
@@ -102,10 +109,9 @@ class DetailAdmin(admin.ModelAdmin):
     list_display = ("get_short_text",)
     search_fields = ("text",)
 
+    @admin.display(description="Detail Text")
     def get_short_text(self, obj):
         return obj.text[:50] + "..." if len(obj.text) > 50 else obj.text
-
-    get_short_text.short_description = "Detail Text"
 
 
 class TimeEntryInline(admin.TabularInline):
@@ -114,10 +120,9 @@ class TimeEntryInline(admin.TabularInline):
     fields = ("time_started", "time_ended", "task", "work_mode", "detail", "get_hours")
     readonly_fields = ("get_hours",)
 
+    @admin.display(description="Hours")
     def get_hours(self, obj):
         return obj.hours if obj.hours else 0
-
-    get_hours.short_description = "Hours"
 
 
 class AssignmentInline(admin.TabularInline):
@@ -143,20 +148,17 @@ class TimeBlockAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     inlines = [AssignmentInline, TimeEntryInline]
 
+    @admin.display(description="Total Hours")
     def get_total_hours(self, obj):
         return sum(entry.hours for entry in obj.time_entries.all())
 
-    get_total_hours.short_description = "Total Hours"
-
+    @admin.display(description="Block Claim")
     def get_block_claim(self, obj):
         return obj.claim if obj.claim else "-"
 
-    get_block_claim.short_description = "Block Claim"
-
+    @admin.display(description="Assignments")
     def get_assignment_count(self, obj):
         return obj.assignments.count()
-
-    get_assignment_count.short_description = "Assignments"
 
 
 @admin.register(Assignment)
@@ -175,13 +177,12 @@ class AssignmentAdmin(admin.ModelAdmin):
     date_hierarchy = "timeblock__date"
     fields = ("timeblock", "entity_type", "entity_id", "notes", "color", "icon")
 
+    @admin.display(description="Entity Name")
     def get_entity_name(self, obj):
         entity = obj.get_entity_object()
         if entity and hasattr(entity, "name") and entity.name:
             return entity.name
         return "-"
-
-    get_entity_name.short_description = "Entity Name"
 
 
 @admin.register(TimeEntry)
@@ -199,10 +200,9 @@ class TimeEntryAdmin(admin.ModelAdmin):
     date_hierarchy = "timeblock__date"
     readonly_fields = ("get_hours",)
 
+    @admin.display(description="Hours")
     def get_hours(self, obj):
         return obj.hours
-
-    get_hours.short_description = "Hours"
 
 
 @admin.register(MonthlySignOff)
@@ -211,7 +211,6 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
         "staff",
         "year",
         "month",
-        "month_name",
         "signed_off_by",
         "signed_off_at",
         "get_records_count",
@@ -228,6 +227,7 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
     fields = ("staff", "year", "month", "signed_off_by", "notes")
     readonly_fields = ("signed_off_at",)
 
+    @admin.display(description="Records")
     def get_records_count(self, obj):
         """Show how many time blocks were signed off for this month"""
         from .models import TimeBlock
@@ -236,8 +236,6 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
             staff=obj.staff, date__year=obj.year, date__month=obj.month
         ).count()
         return f"{count} time blocks"
-
-    get_records_count.short_description = "Records"
 
     def save_model(self, request, obj, form, change):
         # Auto-set the signed_off_by field to the current user's staff record
@@ -278,11 +276,11 @@ class RotaEntryAdmin(admin.ModelAdmin):
     ordering = ["-date"]
     inlines = [RotaShiftInline]
 
+    @admin.display(description="Total Shifts")
     def get_shift_count(self, obj):
         return obj.shifts.count()
 
-    get_shift_count.short_description = "Total Shifts"
-
+    @admin.display(description="Staff Assigned")
     def get_staff_list(self, obj):
         staff_list = []
         for shift in obj.shifts.all()[:3]:  # Show first 3 staff
@@ -295,8 +293,6 @@ class RotaEntryAdmin(admin.ModelAdmin):
             staff_list.append(f"... +{obj.shifts.count() - 3} more")
 
         return ", ".join(staff_list) if staff_list else "No staff assigned"
-
-    get_staff_list.short_description = "Staff Assigned"
 
 
 @admin.register(RotaShift)
@@ -324,26 +320,26 @@ class RotaShiftAdmin(admin.ModelAdmin):
     ordering = ["-rota_entry__date", "seniority_level", "staff__assignment_id"]
     autocomplete_fields = ["staff"]
 
+    @admin.display(description="Shift Type")
     def get_shift_type(self, obj):
         return obj.rota_entry.get_shift_type_display()
 
-    get_shift_type.short_description = "Shift Type"
-
+    @admin.display(description="Day Type")
     def get_day_type(self, obj):
         return obj.rota_entry.day_type
-
-    get_day_type.short_description = "Day Type"
 
 
 @admin.register(MonthlyReportSignOff)
 class MonthlyReportSignOffAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Monthly Report Sign Off model.
+    """
+
     list_display = (
         "year",
         "month",
-        "month_name",
         "signed_off_by",
         "signed_off_at",
-        "total_staff_count",
         "total_hours",
         "total_claims",
     )
