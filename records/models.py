@@ -100,13 +100,6 @@ class DayType(models.Model):
         return self.name
 
 
-class Detail(models.Model):
-    text = models.TextField()
-
-    def __str__(self):
-        return self.text[:50] + "..." if len(self.text) > 50 else self.text
-
-
 class TimeBlock(models.Model):
     """
     Model representing a block of time recorded for actual on-call activities.
@@ -401,7 +394,7 @@ class TimeEntry(models.Model):
     time_started = models.TimeField()
     time_ended = models.TimeField()
     task = models.ForeignKey(TaskType, on_delete=models.CASCADE)
-    detail = models.ForeignKey(Detail, on_delete=models.SET_NULL, null=True, blank=True)
+    details = models.TextField(blank=True, help_text="Optional details about this time entry")
     work_mode = models.ForeignKey(WorkMode, on_delete=models.CASCADE)
     created = models.DateTimeField(default=timezone.now)
     last_modified = models.DateTimeField(auto_now=True)

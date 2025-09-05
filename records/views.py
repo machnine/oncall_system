@@ -133,9 +133,6 @@ def edit_time_entry(request, entry_id):
             return redirect(get_dashboard_url_with_date(time_entry.timeblock.date))
     else:
         form = TimeEntryForm(instance=time_entry)
-        # Pre-populate detail_text if entry has detail
-        if time_entry.detail:
-            form.fields["detail_text"].initial = time_entry.detail.text
 
     context = {
         "form": form,

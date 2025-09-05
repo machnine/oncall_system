@@ -4,7 +4,6 @@ from govuk_bank_holidays.bank_holidays import BankHolidays
 from .models import (
     TimeBlock,
     TimeEntry,
-    Detail,
     Donor,
     Recipient,
     LabTask,
@@ -413,15 +412,9 @@ class TimeBlockEditForm(forms.ModelForm):
 
 
 class TimeEntryForm(forms.ModelForm):
-    detail_text = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-        help_text="Enter detail text (optional)",
-    )
-
     class Meta:
         model = TimeEntry
-        fields = ["time_started", "time_ended", "task", "work_mode"]
+        fields = ["time_started", "time_ended", "task", "work_mode", "details"]
         widgets = {
             "time_started": forms.TimeInput(
                 attrs={"type": "time", "class": "form-control"}
@@ -431,17 +424,5 @@ class TimeEntryForm(forms.ModelForm):
             ),
             "task": forms.Select(attrs={"class": "form-select"}),
             "work_mode": forms.Select(attrs={"class": "form-select"}),
+            "details": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-
-        # Handle detail text
-        detail_text = self.cleaned_data.get("detail_text")
-        if detail_text:
-            detail, created = Detail.objects.get_or_create(text=detail_text)
-            instance.detail = detail
-
-        if commit:
-            instance.save()
-        return instance

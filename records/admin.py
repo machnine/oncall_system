@@ -7,7 +7,6 @@ from .models import (
     WorkMode,
     TaskType,
     DayType,
-    Detail,
     TimeBlock,
     TimeEntry,
     Donor,
@@ -104,20 +103,10 @@ class LabTaskAdmin(admin.ModelAdmin):
     ordering = ("name",)
 
 
-@admin.register(Detail)
-class DetailAdmin(admin.ModelAdmin):
-    list_display = ("get_short_text",)
-    search_fields = ("text",)
-
-    @admin.display(description="Detail Text")
-    def get_short_text(self, obj):
-        return obj.text[:50] + "..." if len(obj.text) > 50 else obj.text
-
-
 class TimeEntryInline(admin.TabularInline):
     model = TimeEntry
     extra = 0
-    fields = ("time_started", "time_ended", "task", "work_mode", "detail", "get_hours")
+    fields = ("time_started", "time_ended", "task", "work_mode", "details", "get_hours")
     readonly_fields = ("get_hours",)
 
     @admin.display(description="Hours")
