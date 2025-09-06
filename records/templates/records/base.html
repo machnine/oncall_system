@@ -26,26 +26,26 @@
                 <div class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <a class="nav-link"
+                           href="{% url 'rota_calendar' %}"
+                           title="Rota Calendar"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="bottom">
+                            <i class="bi bi-calendar3"></i>
+                        </a>
+                        <a class="nav-link"
                            href="{% url 'dashboard' %}"
                            title="Records"
                            data-bs-toggle="tooltip"
                            data-bs-placement="bottom">
-                            <i class="bi-calendar3"></i>
+                            <i class="bi bi-journal"></i>
                         </a>
                         {% if user.is_staff %}
-                            <a class="nav-link"
-                               href="{% url 'rota_calendar' %}"
-                               title="Rota Calendar"
-                               data-bs-toggle="tooltip"
-                               data-bs-placement="bottom">
-                                <i class="bi bi-calendar3-week"></i>
-                            </a>
                             <a class="nav-link"
                                href="{% url 'signoff_management' %}"
                                title="Monthly Sign-offs"
                                data-bs-toggle="tooltip"
                                data-bs-placement="bottom">
-                                <i class="bi bi-check-circle"></i>
+                                <i class="bi bi-clipboard-check"></i>
                             </a>
                             <a class="nav-link"
                                href="{% url 'monthly_report' %}"

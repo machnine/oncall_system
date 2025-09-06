@@ -77,6 +77,8 @@ class OnCallStaff(models.Model):
 
 
 class WorkMode(models.Model):
+    """WFH / Lab / Senior cover etc."""
+
     name = models.CharField(max_length=50, unique=True)
     color = models.CharField(max_length=20, choices=BOOTSTRAP_COLORS, default="primary")
 
@@ -152,6 +154,8 @@ class TimeBlock(models.Model):
 
 
 class Donor(models.Model):
+    """Donor model"""
+
     donor_id = models.CharField(
         max_length=50,
         unique=True,
@@ -166,6 +170,8 @@ class Donor(models.Model):
 
 
 class Recipient(models.Model):
+    """Recipient model"""
+
     recipient_id = models.CharField(
         max_length=50, unique=True, help_text="Unique recipient identifier"
     )
