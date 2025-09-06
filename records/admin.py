@@ -17,6 +17,7 @@ from .models import (
     MonthlyReportSignOff,
     RotaEntry,
     RotaShift,
+    BankHoliday,
 )
 
 
@@ -327,24 +328,51 @@ class MonthlyReportSignOffAdmin(admin.ModelAdmin):
     date_hierarchy = "signed_off_at"
     ordering = ["-year", "-month"]
 
-    fields = (
-        "year",
-        "month",
-        "signed_off_by",
-        "notes",
-        "total_staff_count",
-        "total_hours",
-        "total_claims",
-    )
-    readonly_fields = ("signed_off_at",)
 
-    def save_model(self, request, obj, form, change):
-        # Auto-set the signed_off_by field to the current user's staff record
-        if not change:  # Only for new records
-            try:
-                from .models import OnCallStaff
-
-                obj.signed_off_by = OnCallStaff.objects.get(user=request.user)
-            except OnCallStaff.DoesNotExist:
-                pass
-        super().save_model(request, obj, form, change)
+@admin.register(BankHoliday)
+class BankHolidayAdmin(admin.ModelAdmin):
+    """Admin interface for Bank Holidays with sync functionality"""
+    
+    list_display = ('date', 'title', 'bunting', 'created', 'updated')
+    list_filter = ('bunting', 'created', 'updated')
+    search_fields = ('title', 'notes')
+    readonly_fields = ('created', 'updated')
+    date_hierarchy = 'date'
+    ordering = ['-date']
+    
+    actions = ['sync_from_uk_gov_api']
+    
+    def sync_from_uk_gov_api(self, request, queryset=None):
+        """Admin action to sync bank holidays from UK Gov API"""
+        from django.contrib import messages
+        
+        result = BankHoliday.sync_from_uk_gov_api()
+        
+        if result['success']:
+            message = f"Successfully synced {result['total']} bank holidays from UK Gov API. "
+            message += f"Created: {result['created']}, Updated: {result['updated']}"
+            messages.success(request, message)
+        else:
+            messages.error(request, f"Failed to sync bank holidays: {result['error']}")
+    
+    sync_from_uk_gov_api.short_description = "Sync bank holidays from UK Government API"
+    
+    def changelist_view(self, request, extra_context=None):
+        """Add custom context to the changelist view"""
+        extra_context = extra_context or {}
+        
+        # Add some stats about the bank holidays
+        from datetime import date
+        current_year = date.today().year
+        
+        total_holidays = BankHoliday.objects.count()
+        current_year_holidays = BankHoliday.objects.filter(date__year=current_year).count()
+        future_holidays = BankHoliday.objects.filter(date__gt=date.today()).count()
+        
+        extra_context['bank_holiday_stats'] = {
+            'total': total_holidays,
+            'current_year': current_year_holidays,
+            'future': future_holidays,
+        }
+        
+        return super().changelist_view(request, extra_context=extra_context)
