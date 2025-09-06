@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import TimeBlockEditForm, TimeBlockForm, TimeEntryForm
 from .models import (
+    BankHoliday,
     MonthlyReportSignOff,
     MonthlySignOff,
     OnCallStaff,
@@ -828,9 +829,7 @@ def rota_calendar(request):
                 if rota_entry:
                     day_data["is_bank_holiday"] = rota_entry.is_bank_holiday
                 else:
-                    from .utils.bank_holidays import is_bank_holiday
-
-                    day_data["is_bank_holiday"] = is_bank_holiday(day_date)
+                    day_data["is_bank_holiday"] = BankHoliday.is_bank_holiday(day_date)
 
                 week_data.append(day_data)
 
