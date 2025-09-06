@@ -8,8 +8,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from .utils.bank_holidays import is_bank_holiday
-
 
 # Assignment Type Configuration - This can be moved to a database table later if needed
 ASSIGNMENT_TYPE_CONFIG = {
@@ -431,7 +429,7 @@ class RotaEntry(models.Model):
     @property
     def is_bank_holiday(self):
         """Check if this date is a bank holiday"""
-        return is_bank_holiday(self.date)
+        return BankHoliday.is_bank_holiday(self.date)
 
     @property
     def day_type(self):
