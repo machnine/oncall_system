@@ -29,28 +29,35 @@ class BankHoliday(models.Model):
         return cls.objects.filter(date__gte=start_date, date__lte=end_date)
 
     @classmethod
-    def sync_from_uk_gov_api(cls):
-        """Fetch bank holidays from UK Government API and update database"""
+    def sync_bank_holidays(cls, source="auto", region="england-and-wales"):
+        """
+        Sync bank holidays from either cached file or UK Government API
+        
+        Args:
+            source: "auto" (try cached file first, then API), "local", or "api"
+            region: "england-and-wales", "scotland", or "northern-ireland"
+        """
+        import json
+        import os
         import requests
         from datetime import datetime
+        from django.conf import settings
 
-        try:
-            response = requests.get("https://www.gov.uk/bank-holidays.json", timeout=30)
-            response.raise_for_status()
-            data = response.json()
-
-            # UK Gov API returns data for different regions
-            # We'll use England and Wales as default
-            england_wales_holidays = data.get("england-and-wales", {}).get("events", [])
-
+        def process_holidays_data(data, data_source):
+            """Process holidays data from either source"""
+            if not data or region not in data:
+                return {"success": False, "error": f"No data found for region: {region}"}
+            
+            england_wales_holidays = data.get(region, {}).get("events", [])
+            
             created_count = 0
             updated_count = 0
-
+            
             for holiday_data in england_wales_holidays:
                 holiday_date = datetime.strptime(
                     holiday_data["date"], "%Y-%m-%d"
                 ).date()
-
+                
                 holiday, created = cls.objects.update_or_create(
                     date=holiday_date,
                     defaults={
@@ -58,20 +65,61 @@ class BankHoliday(models.Model):
                         "notes": holiday_data.get("notes", ""),
                     },
                 )
-
+                
                 if created:
                     created_count += 1
                 else:
                     updated_count += 1
-
+            
             return {
                 "success": True,
                 "created": created_count,
                 "updated": updated_count,
                 "total": len(england_wales_holidays),
+                "source": data_source,
             }
 
-        except requests.RequestException as e:
-            return {"success": False, "error": f"API request failed: {str(e)}"}
-        except Exception as e:
-            return {"success": False, "error": f"Unexpected error: {str(e)}"}
+        # Try cached file first if source is auto or local
+        if source in ["auto", "local"]:
+            try:
+                cached_file_path = os.path.join(settings.BASE_DIR, "static", "data", "bank-holidays-2012-2027.json")
+                
+                if os.path.exists(cached_file_path):
+                    with open(cached_file_path, 'r', encoding='utf-8') as file:
+                        data = json.load(file)
+                    
+                    result = process_holidays_data(data, "local cached file")
+                    if result["success"]:
+                        return result
+                elif source == "local":
+                    return {"success": False, "error": "Cached file not found"}
+            except Exception as e:
+                if source == "local":
+                    return {"success": False, "error": f"Local file error: {str(e)}"}
+                # Continue to API if source is auto
+
+        # Try UK Government API if source is auto or api
+        if source in ["auto", "api"]:
+            try:
+                response = requests.get("https://www.gov.uk/bank-holidays.json", timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                
+                result = process_holidays_data(data, "UK Government API")
+                return result
+
+            except requests.RequestException as e:
+                error_msg = f"API request failed: {str(e)}"
+                if source == "api":
+                    return {"success": False, "error": error_msg}
+                else:
+                    return {"success": False, "error": f"Both local file and API failed. API error: {error_msg}"}
+            except Exception as e:
+                return {"success": False, "error": f"Unexpected API error: {str(e)}"}
+
+        return {"success": False, "error": f"Invalid source: {source}"}
+
+    @classmethod
+    def sync_from_uk_gov_api(cls):
+        """Legacy method for backward compatibility - uses API only"""
+        return cls.sync_bank_holidays(source="api")

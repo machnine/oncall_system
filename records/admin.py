@@ -354,22 +354,52 @@ class BankHolidayAdmin(admin.ModelAdmin):
     formatted_date.short_description = "Date"
     formatted_date.admin_order_field = "date"
 
-    actions = ["sync_from_uk_gov_api"]
+    actions = ["sync_from_cached_file", "sync_from_uk_gov_api", "sync_auto"]
 
-    def sync_from_uk_gov_api(self, request, queryset=None):
-        """Admin action to sync bank holidays from UK Gov API"""
-        result = BankHoliday.sync_from_uk_gov_api()
+    def sync_from_cached_file(self, request, queryset=None):
+        """Admin action to sync bank holidays from cached local file"""
+        result = BankHoliday.sync_bank_holidays(source="local")
 
         if result["success"]:
             message = (
-                f"Successfully synced {result['total']} bank holidays from UK Gov API. "
+                f"Successfully synced {result['total']} bank holidays from {result['source']}. "
             )
             message += f"Created: {result['created']}, Updated: {result['updated']}"
             messages.success(request, message)
         else:
             messages.error(request, f"Failed to sync bank holidays: {result['error']}")
 
-    sync_from_uk_gov_api.short_description = "Sync bank holidays from UK Government API"
+    sync_from_cached_file.short_description = "Sync bank holidays from cached file (2012-2027)"
+
+    def sync_from_uk_gov_api(self, request, queryset=None):
+        """Admin action to sync bank holidays from UK Gov API"""
+        result = BankHoliday.sync_bank_holidays(source="api")
+
+        if result["success"]:
+            message = (
+                f"Successfully synced {result['total']} bank holidays from {result['source']}. "
+            )
+            message += f"Created: {result['created']}, Updated: {result['updated']}"
+            messages.success(request, message)
+        else:
+            messages.error(request, f"Failed to sync bank holidays: {result['error']}")
+
+    sync_from_uk_gov_api.short_description = "Sync bank holidays from UK Government API (latest 3 years)"
+
+    def sync_auto(self, request, queryset=None):
+        """Admin action to sync bank holidays (cached file first, then API as fallback)"""
+        result = BankHoliday.sync_bank_holidays(source="auto")
+
+        if result["success"]:
+            message = (
+                f"Successfully synced {result['total']} bank holidays from {result['source']}. "
+            )
+            message += f"Created: {result['created']}, Updated: {result['updated']}"
+            messages.success(request, message)
+        else:
+            messages.error(request, f"Failed to sync bank holidays: {result['error']}")
+
+    sync_auto.short_description = "Sync bank holidays (auto: cached file first, then API fallback)"
 
     def changelist_view(self, request, extra_context=None):
         """Add custom context to the changelist view"""
