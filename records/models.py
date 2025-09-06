@@ -426,7 +426,7 @@ class RotaEntry(models.Model):
         unique_together = ["date"]
 
     def __str__(self):
-        return f"Rota for {self.date.strftime('%d/%m/%Y')}"
+        return f"Rota for {self.date.strftime('%Y-%m-%d')}"
 
     @property
     def is_bank_holiday(self):
@@ -486,9 +486,6 @@ class BankHoliday(models.Model):
     date = models.DateField(unique=True, db_index=True)
     title = models.CharField(max_length=200, help_text="Name of the bank holiday")
     notes = models.TextField(blank=True, help_text="Additional notes")
-    bunting = models.BooleanField(default=False, help_text="Whether bunting is required")
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
     
     class Meta:
         ordering = ['date']
@@ -512,7 +509,7 @@ class BankHoliday(models.Model):
     def sync_from_uk_gov_api(cls):
         """Fetch bank holidays from UK Government API and update database"""
         import requests
-        from datetime import datetime, date
+        from datetime import datetime
         
         try:
             response = requests.get('https://www.gov.uk/bank-holidays.json', timeout=30)
@@ -533,8 +530,7 @@ class BankHoliday(models.Model):
                     date=holiday_date,
                     defaults={
                         'title': holiday_data['title'],
-                        'notes': holiday_data.get('notes', ''),
-                        'bunting': holiday_data.get('bunting', False)
+                        'notes': holiday_data.get('notes', '')
                     }
                 )
                 

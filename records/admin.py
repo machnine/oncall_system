@@ -122,11 +122,17 @@ class AssignmentInline(admin.TabularInline):
 
 @admin.register(TimeBlock)
 class TimeBlockAdmin(admin.ModelAdmin):
-    list_display = ("staff", "date", "day_type", "get_total_hours", "get_block_claim")
+    list_display = ("staff", "formatted_date", "day_type", "get_total_hours", "get_block_claim")
     list_filter = ("day_type", "date", "staff")
     search_fields = ("staff__assignment_id", "staff__user__username")
     date_hierarchy = "date"
     inlines = [AssignmentInline, TimeEntryInline]
+
+    def formatted_date(self, obj):
+        """Return date in yyyy-mm-dd format"""
+        return obj.date.strftime('%Y-%m-%d')
+    formatted_date.short_description = 'Date'
+    formatted_date.admin_order_field = 'date'
 
     @admin.display(description="Total Hours")
     def get_total_hours(self, obj):
@@ -239,7 +245,7 @@ class RotaShiftInline(admin.TabularInline):
 @admin.register(RotaEntry)
 class RotaEntryAdmin(admin.ModelAdmin):
     list_display = (
-        "date",
+        "formatted_date",
         "shift_type",
         "day_type",
         "get_shift_count",
@@ -253,6 +259,12 @@ class RotaEntryAdmin(admin.ModelAdmin):
         "shifts__staff__user__username",
     )
     date_hierarchy = "date"
+
+    def formatted_date(self, obj):
+        """Return date in yyyy-mm-dd format"""
+        return obj.date.strftime('%Y-%m-%d')
+    formatted_date.short_description = 'Date'
+    formatted_date.admin_order_field = 'date'
     ordering = ["-date"]
     inlines = [RotaShiftInline]
 
@@ -332,47 +344,56 @@ class MonthlyReportSignOffAdmin(admin.ModelAdmin):
 @admin.register(BankHoliday)
 class BankHolidayAdmin(admin.ModelAdmin):
     """Admin interface for Bank Holidays with sync functionality"""
-    
-    list_display = ('date', 'title', 'bunting', 'created', 'updated')
-    list_filter = ('bunting', 'created', 'updated')
-    search_fields = ('title', 'notes')
-    readonly_fields = ('created', 'updated')
-    date_hierarchy = 'date'
-    ordering = ['-date']
-    
-    actions = ['sync_from_uk_gov_api']
-    
+
+    list_display = ("formatted_date", "title", "notes")
+    search_fields = ("title", "notes")
+    date_hierarchy = "date"
+    ordering = ["-date"]
+
+    def formatted_date(self, obj):
+        """Return date in yyyy-mm-dd format"""
+        return obj.date.strftime('%Y-%m-%d')
+    formatted_date.short_description = 'Date'
+    formatted_date.admin_order_field = 'date'
+
+    actions = ["sync_from_uk_gov_api"]
+
     def sync_from_uk_gov_api(self, request, queryset=None):
         """Admin action to sync bank holidays from UK Gov API"""
         from django.contrib import messages
-        
+
         result = BankHoliday.sync_from_uk_gov_api()
-        
-        if result['success']:
-            message = f"Successfully synced {result['total']} bank holidays from UK Gov API. "
+
+        if result["success"]:
+            message = (
+                f"Successfully synced {result['total']} bank holidays from UK Gov API. "
+            )
             message += f"Created: {result['created']}, Updated: {result['updated']}"
             messages.success(request, message)
         else:
             messages.error(request, f"Failed to sync bank holidays: {result['error']}")
-    
+
     sync_from_uk_gov_api.short_description = "Sync bank holidays from UK Government API"
-    
+
     def changelist_view(self, request, extra_context=None):
         """Add custom context to the changelist view"""
         extra_context = extra_context or {}
-        
+
         # Add some stats about the bank holidays
         from datetime import date
+
         current_year = date.today().year
-        
+
         total_holidays = BankHoliday.objects.count()
-        current_year_holidays = BankHoliday.objects.filter(date__year=current_year).count()
+        current_year_holidays = BankHoliday.objects.filter(
+            date__year=current_year
+        ).count()
         future_holidays = BankHoliday.objects.filter(date__gt=date.today()).count()
-        
-        extra_context['bank_holiday_stats'] = {
-            'total': total_holidays,
-            'current_year': current_year_holidays,
-            'future': future_holidays,
+
+        extra_context["bank_holiday_stats"] = {
+            "total": total_holidays,
+            "current_year": current_year_holidays,
+            "future": future_holidays,
         }
-        
+
         return super().changelist_view(request, extra_context=extra_context)
