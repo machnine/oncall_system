@@ -1,23 +1,27 @@
 """Admin configurations"""
 
+from datetime import date
+
 from django.contrib import admin
+from django.contrib import messages
 from django.utils.html import format_html
+
 from .models import (
-    OnCallStaff,
-    WorkMode,
-    TaskType,
-    DayType,
-    TimeBlock,
-    TimeEntry,
-    Donor,
-    Recipient,
-    LabTask,
     Assignment,
-    MonthlySignOff,
+    BankHoliday,
+    DayType,
+    Donor,
+    LabTask,
     MonthlyReportSignOff,
+    MonthlySignOff,
+    OnCallStaff,
+    Recipient,
     RotaEntry,
     RotaShift,
-    BankHoliday,
+    TaskType,
+    TimeBlock,
+    TimeEntry,
+    WorkMode,
 )
 
 
@@ -122,7 +126,13 @@ class AssignmentInline(admin.TabularInline):
 
 @admin.register(TimeBlock)
 class TimeBlockAdmin(admin.ModelAdmin):
-    list_display = ("staff", "formatted_date", "day_type", "get_total_hours", "get_block_claim")
+    list_display = (
+        "staff",
+        "formatted_date",
+        "day_type",
+        "get_total_hours",
+        "get_block_claim",
+    )
     list_filter = ("day_type", "date", "staff")
     search_fields = ("staff__assignment_id", "staff__user__username")
     date_hierarchy = "date"
@@ -130,9 +140,10 @@ class TimeBlockAdmin(admin.ModelAdmin):
 
     def formatted_date(self, obj):
         """Return date in yyyy-mm-dd format"""
-        return obj.date.strftime('%Y-%m-%d')
-    formatted_date.short_description = 'Date'
-    formatted_date.admin_order_field = 'date'
+        return obj.date.strftime("%Y-%m-%d")
+
+    formatted_date.short_description = "Date"
+    formatted_date.admin_order_field = "date"
 
     @admin.display(description="Total Hours")
     def get_total_hours(self, obj):
@@ -216,8 +227,6 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
     @admin.display(description="Records")
     def get_records_count(self, obj):
         """Show how many time blocks were signed off for this month"""
-        from .models import TimeBlock
-
         count = TimeBlock.objects.filter(
             staff=obj.staff, date__year=obj.year, date__month=obj.month
         ).count()
@@ -227,8 +236,6 @@ class MonthlySignOffAdmin(admin.ModelAdmin):
         # Auto-set the signed_off_by field to the current user's staff record
         if not change:  # Only for new records
             try:
-                from .models import OnCallStaff
-
                 obj.signed_off_by = OnCallStaff.objects.get(user=request.user)
             except OnCallStaff.DoesNotExist:
                 pass
@@ -244,14 +251,7 @@ class RotaShiftInline(admin.TabularInline):
 
 @admin.register(RotaEntry)
 class RotaEntryAdmin(admin.ModelAdmin):
-    list_display = (
-        "formatted_date",
-        "shift_type",
-        "day_type",
-        "get_shift_count",
-        "get_staff_list",
-        "is_bank_holiday",
-    )
+    list_display = ("formatted_date", "shift_type", "day_type", "get_staff_list")
     list_filter = ("date", "shift_type", "shifts__seniority_level")
     search_fields = (
         "date",
@@ -262,17 +262,14 @@ class RotaEntryAdmin(admin.ModelAdmin):
 
     def formatted_date(self, obj):
         """Return date in yyyy-mm-dd format"""
-        return obj.date.strftime('%Y-%m-%d')
-    formatted_date.short_description = 'Date'
-    formatted_date.admin_order_field = 'date'
+        return obj.date.strftime("%Y-%m-%d")
+
+    formatted_date.short_description = "Date"
+    formatted_date.admin_order_field = "date"
     ordering = ["-date"]
     inlines = [RotaShiftInline]
 
-    @admin.display(description="Total Shifts")
-    def get_shift_count(self, obj):
-        return obj.shifts.count()
-
-    @admin.display(description="Staff Assigned")
+    @admin.display(description="On call staff")
     def get_staff_list(self, obj):
         staff_list = []
         for shift in obj.shifts.all()[:3]:  # Show first 3 staff
@@ -284,7 +281,7 @@ class RotaEntryAdmin(admin.ModelAdmin):
         if obj.shifts.count() > 3:
             staff_list.append(f"... +{obj.shifts.count() - 3} more")
 
-        return ", ".join(staff_list) if staff_list else "No staff assigned"
+        return " - ".join(staff_list) if staff_list else "No staff assigned"
 
 
 @admin.register(RotaShift)
@@ -352,16 +349,15 @@ class BankHolidayAdmin(admin.ModelAdmin):
 
     def formatted_date(self, obj):
         """Return date in yyyy-mm-dd format"""
-        return obj.date.strftime('%Y-%m-%d')
-    formatted_date.short_description = 'Date'
-    formatted_date.admin_order_field = 'date'
+        return obj.date.strftime("%Y-%m-%d")
+
+    formatted_date.short_description = "Date"
+    formatted_date.admin_order_field = "date"
 
     actions = ["sync_from_uk_gov_api"]
 
     def sync_from_uk_gov_api(self, request, queryset=None):
         """Admin action to sync bank holidays from UK Gov API"""
-        from django.contrib import messages
-
         result = BankHoliday.sync_from_uk_gov_api()
 
         if result["success"]:
@@ -380,8 +376,6 @@ class BankHolidayAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
 
         # Add some stats about the bank holidays
-        from datetime import date
-
         current_year = date.today().year
 
         total_holidays = BankHoliday.objects.count()
