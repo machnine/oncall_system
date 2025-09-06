@@ -1,0 +1,9 @@
+/* Main site-wide styles for On-Call Records system */
+
+/* Month Selector Component */
+.month-selector-btn {
+    min-width: 120px;
+    text-align: left;
+}
+
+/* Add other site-wide styles here as needed */
