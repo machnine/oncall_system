@@ -3,14 +3,13 @@
 {% block title %}
     Rota Statistics - {{ period_label }}
 {% endblock title %}
-
 {% block extra_css %}
-<style>
+    <style>
     .sortable-header i {
         color: var(--bs-light) !important;
         opacity: 0.6;
     }
-</style>
+    </style>
 {% endblock extra_css %}
 {% block content %}
     <div class="row mb-4">
@@ -28,25 +27,27 @@
                                 <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Quarterly</option>
                                 <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>Monthly</option>
                             </select>
-                            
                             <select name="year" class="form-select form-select-sm">
                                 {% for year_option in year_range %}
                                     <option value="{{ year_option }}" {% if year_option == year %}selected{% endif %}>{{ year_option }}</option>
                                 {% endfor %}
                             </select>
-                            
-                            <select name="quarter" class="form-select form-select-sm" id="quarterSelect" {% if period_type != 'quarterly' %}style="display:none"{% endif %}>
+                            <select name="quarter"
+                                    class="form-select form-select-sm"
+                                    id="quarterSelect"
+                                    {% if period_type != 'quarterly' %}style="display:none"{% endif %}>
                                 {% for q_value, q_label in quarters %}
                                     <option value="{{ q_value }}" {% if q_value|stringformat:"s" == quarter %}selected{% endif %}>{{ q_label }}</option>
                                 {% endfor %}
                             </select>
-                            
-                            <select name="month" class="form-select form-select-sm" id="monthSelect" {% if period_type != 'monthly' %}style="display:none"{% endif %}>
+                            <select name="month"
+                                    class="form-select form-select-sm"
+                                    id="monthSelect"
+                                    {% if period_type != 'monthly' %}style="display:none"{% endif %}>
                                 {% for m_value, m_label in months %}
                                     <option value="{{ m_value }}" {% if m_value|stringformat:"s" == month %}selected{% endif %}>{{ m_label }}</option>
                                 {% endfor %}
                             </select>
-                            
                             <button type="submit" class="btn btn-primary btn-sm">Update</button>
                         </form>
                     </div>
@@ -54,7 +55,6 @@
             </div>
         </div>
     </div>
-
     <!-- Overall Statistics Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -104,21 +104,20 @@
                             <h6 class="card-title">NHSP Shifts</h6>
                             <h4>{{ overall_stats.nhsp_shifts }}</h4>
                         </div>
-                        <i class="bi bi-exclamation-triangle icon-lg text-danger"></i>
+                        <i class="bi bi-cash icon-lg text-danger"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-
     <!-- Staff Statistics by Seniority Level -->
-    
     <!-- Trainee Statistics -->
     {% if trainee_staff %}
         <div class="card mb-4">
             <div class="card-header">
-                <h6><i class="bi bi-person-plus"></i> Trainee Statistics</h6>
+                <h6>
+                    <i class="bi bi-person-plus"></i> Trainee Statistics
+                </h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -153,9 +152,11 @@
                                 <tr>
                                     <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
                                         <div class="d-flex align-items-center">
-                                            <div class="me-2" 
-                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
-                                            </div>
+                                            <div class="me-2"
+                                                 style="width: 12px;
+                                                        height: 12px;
+                                                        background-color: {{ staff_stat.staff.color }};
+                                                        border-radius: 2px"></div>
                                             <div>
                                                 <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
                                             </div>
@@ -177,12 +178,13 @@
             </div>
         </div>
     {% endif %}
-
     <!-- On-Call Statistics -->
     {% if oncall_staff %}
         <div class="card mb-4">
             <div class="card-header">
-                <h6><i class="bi bi-person-check"></i> On-Call Statistics</h6>
+                <h6>
+                    <i class="bi bi-person-check"></i> On-Call Statistics
+                </h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -217,9 +219,11 @@
                                 <tr>
                                     <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
                                         <div class="d-flex align-items-center">
-                                            <div class="me-2" 
-                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
-                                            </div>
+                                            <div class="me-2"
+                                                 style="width: 12px;
+                                                        height: 12px;
+                                                        background-color: {{ staff_stat.staff.color }};
+                                                        border-radius: 2px"></div>
                                             <div>
                                                 <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
                                             </div>
@@ -241,12 +245,13 @@
             </div>
         </div>
     {% endif %}
-
     <!-- Senior Cover Statistics -->
     {% if senior_staff %}
         <div class="card mb-4">
             <div class="card-header">
-                <h6><i class="bi bi-person-badge"></i> Senior Cover Statistics</h6>
+                <h6>
+                    <i class="bi bi-person-badge"></i> Senior Cover Statistics
+                </h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -281,9 +286,11 @@
                                 <tr>
                                     <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
                                         <div class="d-flex align-items-center">
-                                            <div class="me-2" 
-                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
-                                            </div>
+                                            <div class="me-2"
+                                                 style="width: 12px;
+                                                        height: 12px;
+                                                        background-color: {{ staff_stat.staff.color }};
+                                                        border-radius: 2px"></div>
                                             <div>
                                                 <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
                                             </div>
@@ -305,12 +312,13 @@
             </div>
         </div>
     {% endif %}
-
     <!-- Bank Holiday Statistics (Last 5 Years) - Summary by Holiday Type -->
     {% if bank_holiday_staff and bank_holiday_types %}
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-calendar-event"></i> Bank Holiday Coverage Summary (Last 5 Years)</h6>
+                <h6 class="mb-0">
+                    <i class="bi bi-calendar-event"></i> Bank Holiday Coverage Summary (Last 5 Years)
+                </h6>
                 <a href="{% url 'bank_holiday_detail' %}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-eye"></i> View Year-by-Year Detail
                 </a>
@@ -324,11 +332,13 @@
                                     Staff <i class="bi bi-arrow-down-up"></i>
                                 </th>
                                 {% for holiday_type in bank_holiday_types %}
-                                    <th class="text-center sortable-header col-width-12" onclick="sortTable('bankHolidayTable', {{ forloop.counter }})">
+                                    <th class="text-center sortable-header col-width-12"
+                                        onclick="sortTable('bankHolidayTable', {{ forloop.counter }})">
                                         {{ holiday_type }} <i class="bi bi-arrow-down-up"></i>
                                     </th>
                                 {% endfor %}
-                                <th class="text-center sortable-header col-width-12" onclick="sortTable('bankHolidayTable', {{ bank_holiday_types|length|add:1 }})">
+                                <th class="text-center sortable-header col-width-12"
+                                    onclick="sortTable('bankHolidayTable', {{ bank_holiday_types|length|add:1 }})">
                                     Total <i class="bi bi-arrow-down-up"></i>
                                 </th>
                             </tr>
@@ -338,9 +348,11 @@
                                 <tr>
                                     <td data-sort="{{ staff_data.staff.user.last_name|default:staff_data.staff.user.username }}{{ staff_data.staff.user.first_name }}">
                                         <div class="d-flex align-items-center">
-                                            <div class="me-2" 
-                                                 style="width: 12px; height: 12px; background-color: {{ staff_data.staff.color }}; border-radius: 2px;">
-                                            </div>
+                                            <div class="me-2"
+                                                 style="width: 12px;
+                                                        height: 12px;
+                                                        background-color: {{ staff_data.staff.color }};
+                                                        border-radius: 2px"></div>
                                             <div>
                                                 <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
                                             </div>
@@ -372,7 +384,6 @@
             </div>
         </div>
     {% endif %}
-
     <!-- No data state -->
     {% if not trainee_staff and not oncall_staff and not senior_staff %}
         <div class="card">
@@ -388,7 +399,6 @@
             </div>
         </div>
     {% endif %}
-
     <script>
         function togglePeriodFields() {
             const periodType = document.querySelector('select[name="period"]').value;

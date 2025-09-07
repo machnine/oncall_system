@@ -656,40 +656,78 @@ def bank_holiday_detail(request):
         # Use ALL bank holidays for this year (already sorted by date)
         year_bank_holidays = year_data['all_bank_holidays']
         
+        # Define important bank holiday keywords (case-insensitive matching)
+        important_keywords = [
+            'new year', 'christmas', 'boxing day', 'good friday', 'easter monday',
+            'substitute', 'extra'  # Includes substitute days and extra days
+        ]
+        
         # Create columns from all bank holidays
         year_data['bank_holiday_columns'] = []
+        year_data['important_columns'] = []
+        
         for bh in year_bank_holidays:
             bh_key = f"{bh.title}_{bh.date.strftime('%m-%d')}"
-            year_data['bank_holiday_columns'].append({
+            column_data = {
                 'key': bh_key,
                 'title': bh.title,
                 'date': bh.date,
                 'display': f"{bh.title} ({bh.date.strftime('%d/%m')})"
-            })
+            }
+            
+            # Check if this is an important holiday
+            is_important = any(keyword.lower() in bh.title.lower() for keyword in important_keywords)
+            
+            year_data['bank_holiday_columns'].append(column_data)
+            if is_important:
+                year_data['important_columns'].append(column_data)
         
-        # Convert staff stats to list with aligned columns
+        # Convert staff stats to list with aligned columns (for both views)
         year_data['bank_holiday_staff_list'] = []
+        year_data['important_staff_list'] = []
+        
         for data in year_data['staff_stats'].values():
             if data['staff'] is not None:
-                staff_row = {
+                # Full staff row (all holidays)
+                full_staff_row = {
                     'staff': data['staff'],
                     'columns': [],
                     'total_bank_holidays': 0
                 }
                 
-                # Fill in data for each column
+                # Important holidays staff row
+                important_staff_row = {
+                    'staff': data['staff'],
+                    'columns': [],
+                    'total_important_holidays': 0
+                }
+                
+                # Fill in data for all columns
                 for column in year_data['bank_holiday_columns']:
                     if column['key'] in data['bank_holiday_counts']:
                         count = data['bank_holiday_counts'][column['key']]['count']
-                        staff_row['columns'].append(count)
-                        staff_row['total_bank_holidays'] += count
+                        full_staff_row['columns'].append(count)
+                        full_staff_row['total_bank_holidays'] += count
                     else:
-                        staff_row['columns'].append(0)
+                        full_staff_row['columns'].append(0)
                 
-                year_data['bank_holiday_staff_list'].append(staff_row)
+                # Fill in data for important columns
+                for column in year_data['important_columns']:
+                    if column['key'] in data['bank_holiday_counts']:
+                        count = data['bank_holiday_counts'][column['key']]['count']
+                        important_staff_row['columns'].append(count)
+                        important_staff_row['total_important_holidays'] += count
+                    else:
+                        important_staff_row['columns'].append(0)
+                
+                year_data['bank_holiday_staff_list'].append(full_staff_row)
+                year_data['important_staff_list'].append(important_staff_row)
         
-        # Sort by staff name
+        # Sort by staff name (both lists)
         year_data['bank_holiday_staff_list'].sort(
+            key=lambda x: (x['staff'].user.last_name or x['staff'].user.username, x['staff'].user.first_name or '')
+        )
+        year_data['important_staff_list'].sort(
             key=lambda x: (x['staff'].user.last_name or x['staff'].user.username, x['staff'].user.first_name or '')
         )
     

@@ -61,7 +61,7 @@
                                     <td>
                                         <strong>Total Claims:</strong>
                                     </td>
-                                    <td>£{{ total_claims|floatformat:2 }}</td>
+                                    <td>{{ total_claims|floatformat:2 }}</td>
                                 </tr>
                             </table>
                         </div>
@@ -98,7 +98,7 @@
                                             </td>
                                             <td>
                                                 {% if tb.claim %}
-                                                    £{{ tb.claim|floatformat:2 }}
+                                                    {{ tb.claim|floatformat:2 }}
                                                 {% else %}
                                                     -
                                                 {% endif %}
