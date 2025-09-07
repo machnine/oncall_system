@@ -33,16 +33,16 @@ html {
         {% if time_blocks %}
             <!-- Header Row -->
             <div class="blocks-header d-none d-md-flex align-items-center py-2 px-3 border-bottom text-muted small fw-bold">
-                <div style="width: 20%;">Date</div>
-                <div style="width: 12%;">Day Type</div>
-                <div style="width: 18%;">Time Span</div>
-                <div style="width: 10%;">Hours</div>
-                <div style="width: 12%;">Claim Hours</div>
-                <div style="width: 16%;">Assignments</div>
+                <div class="col-width-20">Date</div>
+                <div class="col-width-12">Day Type</div>
+                <div class="col-width-18">Time Span</div>
+                <div class="col-width-10">Hours</div>
+                <div class="col-width-12">Claim Hours</div>
+                <div class="col-width-16">Assignments</div>
                 {% if not is_admin_view %}
-                    <div style="width: 12%;" class="text-end">Actions</div>
+                    <div class="col-width-12 text-end">Actions</div>
                 {% else %}
-                    <div style="width: 12%;"></div>
+                    <div class="col-width-12"></div>
                 {% endif %}
             </div>
             <!-- Blocks Container -->
@@ -52,9 +52,8 @@ html {
                     {% for tblock in date_group.list %}
                         <div class="block-item border-bottom">
                             <!-- Block Header -->
-                            <div class="block-header d-flex align-items-center py-3 px-3 border-bottom"
-                                 style="background-color: {% if forloop.parentloop.counter0|divisibleby:2 %}#f5f5f5{% else %}transparent{% endif %}">
-                                <div style="width: 20%;" class="d-flex align-items-center">
+                            <div class="block-header d-flex align-items-center py-3 px-3 border-bottom {% if forloop.parentloop.counter0|divisibleby:2 %}row-striped{% endif %}">
+                                <div class="col-width-20 d-flex align-items-center">
                                     <button class="btn btn-sm btn-outline-secondary border-0 me-2"
                                             type="button"
                                             data-bs-toggle="collapse"
@@ -64,10 +63,10 @@ html {
                                     </button>
                                     <span class="fw-bold">{{ tblock.date|date:"d M Y" }}</span>
                                 </div>
-                                <div style="width: 12%;">
+                                <div class="col-width-12">
                                     <span class="badge bg-{{ tblock.day_type.color }}">{{ tblock.day_type.name }}</span>
                                 </div>
-                                <div style="width: 18%;">
+                                <div class="col-width-18">
                                     {% if tblock.time_entries.all %}
                                         {% with first_entry=tblock.time_entries.first last_entry=tblock.time_entries.last %}
                                             <span class="text-muted">{{ first_entry.time_started|time:"H:i" }} - {{ last_entry.time_ended|time:"H:i" }}</span>
@@ -76,10 +75,10 @@ html {
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </div>
-                                <div style="width: 10%;">
+                                <div class="col-width-10">
                                     <span class="fw-medium">{{ tblock.calculated_hours|floatformat:2 }}</span>
                                 </div>
-                                <div style="width: 12%;">
+                                <div class="col-width-12">
                                     {% if tblock.oncall_type == 'nhsp' %}
                                         <span class="badge bg-danger">NHSP</span>
                                     {% elif tblock.claim %}
@@ -89,12 +88,12 @@ html {
                                     {% endif %}
                                 </div>
                                 <!-- Assignments in header -->
-                                <div style="width: 16%;">
+                                <div class="col-width-16">
                                     {% if tblock.assignments.all %}
                                         <div class="d-flex align-items-center flex-wrap">
                                             {% for assignment in tblock.assignments.all %}
                                                 <span class="badge bg-{{ assignment.display_color }} me-1 mb-1 d-flex align-items-center"
-                                                      style="font-size: 0.7rem">
+                                                      class="icon-sm">
                                                     <i class="{{ assignment.display_icon }} me-1"></i>
                                                     {{ assignment.entity_id }}
                                                 </span>
@@ -105,8 +104,8 @@ html {
                                     {% endif %}
                                 </div>
                                 {% if not is_admin_view %}
-                                    <div style="width: 12%;" class="text-end">
-                                        <div class="btn-group block-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
+                                    <div class="col-width-12 text-end">
+                                        <div class="btn-group block-actions actions-hidden" role="group">
                                             <a href="{% url 'add_time_entry' tblock.id %}"
                                                class="btn btn-sm btn-outline-success border-0"
                                                data-bs-toggle="tooltip"
@@ -128,7 +127,7 @@ html {
                                         </div>
                                     </div>
                                 {% else %}
-                                    <div style="width: 12%;"></div>
+                                    <div class="col-width-12"></div>
                                 {% endif %}
                             </div>
                             <!-- Time Entries Section -->
@@ -136,39 +135,34 @@ html {
                                 {% if tblock.time_entries.all %}
                                     <div class="time-entries-container px-3 pb-3">
                                         <!-- Time Entries Header -->
-                                        <div class="time-entries-header d-none d-md-flex align-items-center pt-2 px-4 text-muted small"
-                                             style="font-size: 0.75rem;
-                                                    border-bottom: 1px solid #e9ecef;
-                                                    margin-left: 2rem">
-                                            <div style="width: 12%;">Start</div>
-                                            <div style="width: 12%;">End</div>
-                                            <div style="width: 12%;">Hours</div>
-                                            <div style="width: 15%;">Work Mode</div>
-                                            <div style="width: 18%;">Task</div>
-                                            <div style="width: 21%;">Details</div>
-                                            <div style="width: 10%;" class="text-end"></div>
+                                        <div class="time-entries-header d-none d-md-flex align-items-center pt-2 px-4 text-muted small">
+                                            <div class="col-width-12">Start</div>
+                                            <div class="col-width-12">End</div>
+                                            <div class="col-width-12">Hours</div>
+                                            <div class="col-width-15">Work Mode</div>
+                                            <div class="col-width-18">Task</div>
+                                            <div class="col-width-21">Details</div>
+                                            <div class="col-width-10 text-end"></div>
                                         </div>
                                         <!-- Time Entries -->
                                         {% for entry in tblock.time_entries.all %}
-                                            <div class="time-entry d-flex align-items-center py-2 px-4 border-bottom"
-                                                 style="margin-left: 2rem;
-                                                        border-bottom: 1px solid #e9ecef !important">
-                                                <div style="width: 12%;">
+                                            <div class="time-entry time-entry-row d-flex align-items-center py-2 px-4 border-bottom">
+                                                <div class="col-width-12">
                                                     <span class="small">{{ entry.time_started|time:"H:i" }}</span>
                                                 </div>
-                                                <div style="width: 12%;">
+                                                <div class="col-width-12">
                                                     <span class="small">{{ entry.time_ended|time:"H:i" }}</span>
                                                 </div>
-                                                <div style="width: 12%;">
+                                                <div class="col-width-12">
                                                     <span class="small">{{ entry.hours|floatformat:2 }}</span>
                                                 </div>
-                                                <div style="width: 15%;">
+                                                <div class="col-width-15">
                                                     <span class="badge bg-{{ entry.work_mode.color }}">{{ entry.work_mode.name }}</span>
                                                 </div>
-                                                <div style="width: 18%;">
+                                                <div class="col-width-18">
                                                     <span class="badge bg-{{ entry.task.color }} small">{{ entry.task.name }}</span>
                                                 </div>
-                                                <div style="width: 21%;">
+                                                <div class="col-width-21">
                                                     {% if entry.detail %}
                                                         <span class="small text-muted" title="{{ entry.detail.text }}" data-bs-toggle="tooltip">
                                                             {{ entry.detail.text|truncatechars:30 }}
@@ -178,8 +172,8 @@ html {
                                                     {% endif %}
                                                 </div>
                                                 {% if not is_admin_view %}
-                                                    <div style="width: 10%;" class="text-end">
-                                                        <div class="btn-group entry-actions" role="group" style="opacity: 0; transition: opacity 0.2s;">
+                                                    <div class="col-width-10 text-end">
+                                                        <div class="btn-group entry-actions actions-hidden" role="group">
                                                             <a href="{% url 'edit_time_entry' entry.id %}"
                                                                class="btn btn-sm btn-outline-primary border-0"
                                                                data-bs-toggle="tooltip"
@@ -199,7 +193,7 @@ html {
                                         {% endfor %}
                                     </div>
                                 {% else %}
-                                    <div class="no-entries p-3 text-center text-muted" style="margin-left: 2rem; background-color: #f8f9fa;">
+                                    <div class="no-entries no-entries-notice p-3 text-center text-muted">
                                         <i class="bi bi-clock-history"></i>
                                         {% if is_admin_view %}
                                             No time entries for this block.
@@ -218,7 +212,7 @@ html {
             </div>
         {% else %}
             <div class="text-center py-4">
-                <i class="bi bi-calendar-x" style="font-size: 3rem; color: #ccc;"></i>
+                <i class="bi bi-calendar-x icon-xl empty-state"></i>
                 {% if is_admin_view %}
                     <h5 class="mt-3 text-muted">No blocks recorded for this month</h5>
                     <p class="text-muted">
@@ -237,12 +231,12 @@ html {
 </div>
 <style>
 /* Block actions hover effect */
-.block-header:hover .block-actions {
+.block-header:hover .actions-hidden {
     opacity: 1 !important;
 }
 
 /* Time entry actions hover effect */
-.time-entry:hover .entry-actions {
+.time-entry:hover .actions-hidden {
     opacity: 1 !important;
 }
 </style>
