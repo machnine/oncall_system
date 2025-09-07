@@ -18,4 +18,5 @@ from .rota_views import (
     create_rota_entry,
     remove_staff_from_rota,
     rota_statistics,
+    bank_holiday_detail,
 )

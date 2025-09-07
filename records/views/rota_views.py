@@ -475,15 +475,17 @@ def rota_statistics(request):
     oncall_staff = [s for s in staff_list if s['seniority_breakdown']['oncall'] > 0] 
     senior_staff = [s for s in staff_list if s['seniority_breakdown']['senior'] > 0]
     
-    # Bank Holiday Analysis - Last 5 Years
-    five_years_ago = datetime.now().date() - timedelta(days=5*365)
+    # Bank Holiday Analysis - Last 5 Years + Full Current Year (Summary by Holiday Type)
+    current_year = datetime.now().year
+    five_years_ago = datetime(current_year - 4, 1, 1).date()  # Start of 5 years ago
+    end_of_current_year = datetime(current_year, 12, 31).date()  # End of current year
     
-    # Get all bank holiday shifts from the last 5 years
+    # Get all bank holiday shifts from the last 5 years including full current year
     bank_holiday_shifts = (
         RotaShift.objects
         .filter(
             rota_entry__date__gte=five_years_ago,
-            rota_entry__date__lte=datetime.now().date()
+            rota_entry__date__lte=end_of_current_year
         )
         .select_related('staff__user', 'rota_entry')
         .order_by('rota_entry__date')
@@ -495,20 +497,20 @@ def rota_statistics(request):
         if BankHoliday.is_bank_holiday(shift.rota_entry.date):
             bank_holiday_rota_shifts.append(shift)
     
-    # Get all unique bank holidays from the last 5 years with shifts
-    bank_holidays_with_shifts = set()
+    # Get all unique bank holiday types from the last 5 years
+    bank_holiday_types = set()
     for shift in bank_holiday_rota_shifts:
         try:
             bank_holiday = BankHoliday.objects.get(date=shift.rota_entry.date)
-            bank_holidays_with_shifts.add(bank_holiday)
+            bank_holiday_types.add(bank_holiday.title)
         except BankHoliday.DoesNotExist:
             pass
     
-    # Sort bank holidays by date (most recent first)
-    sorted_bank_holidays = sorted(bank_holidays_with_shifts, key=lambda x: x.date, reverse=True)
+    # Sort bank holiday types alphabetically
+    sorted_bank_holiday_types = sorted(bank_holiday_types)
     
-    # Build staff bank holiday statistics
-    staff_bank_holiday_stats = defaultdict(lambda: {'staff': None, 'bank_holiday_counts': {}})
+    # Build staff bank holiday statistics by type (not individual dates)
+    staff_bank_holiday_stats = defaultdict(lambda: {'staff': None, 'holiday_type_counts': {}})
     
     for shift in bank_holiday_rota_shifts:
         staff_id = shift.staff.id
@@ -518,28 +520,13 @@ def rota_statistics(request):
         # Find the bank holiday for this date
         try:
             bank_holiday = BankHoliday.objects.get(date=shift.rota_entry.date)
-            bh_key = f"{bank_holiday.title}_{bank_holiday.date.year}"
+            holiday_type = bank_holiday.title
             
-            if bh_key not in staff_bank_holiday_stats[staff_id]['bank_holiday_counts']:
-                staff_bank_holiday_stats[staff_id]['bank_holiday_counts'][bh_key] = {
-                    'count': 0,
-                    'bank_holiday': bank_holiday
-                }
-            staff_bank_holiday_stats[staff_id]['bank_holiday_counts'][bh_key]['count'] += 1
+            if holiday_type not in staff_bank_holiday_stats[staff_id]['holiday_type_counts']:
+                staff_bank_holiday_stats[staff_id]['holiday_type_counts'][holiday_type] = 0
+            staff_bank_holiday_stats[staff_id]['holiday_type_counts'][holiday_type] += 1
         except BankHoliday.DoesNotExist:
             pass
-    
-    # Create unique bank holiday columns (title + year combinations)
-    bank_holiday_columns = []
-    for bh in sorted_bank_holidays:
-        bh_key = f"{bh.title}_{bh.date.year}"
-        bank_holiday_columns.append({
-            'key': bh_key,
-            'title': bh.title,
-            'year': bh.date.year,
-            'date': bh.date,
-            'display': f"{bh.title} {bh.date.year}"
-        })
     
     # Convert to list and prepare data with column alignment
     bank_holiday_staff_list = []
@@ -548,18 +535,15 @@ def rota_statistics(request):
             # Create aligned columns for each staff member
             staff_row = {
                 'staff': data['staff'],
-                'columns': [],
+                'holiday_counts': [],
                 'total_bank_holidays': 0
             }
             
-            # Fill in data for each column
-            for column in bank_holiday_columns:
-                if column['key'] in data['bank_holiday_counts']:
-                    count = data['bank_holiday_counts'][column['key']]['count']
-                    staff_row['columns'].append(count)
-                    staff_row['total_bank_holidays'] += count
-                else:
-                    staff_row['columns'].append(0)
+            # Fill in data for each holiday type
+            for holiday_type in sorted_bank_holiday_types:
+                count = data['holiday_type_counts'].get(holiday_type, 0)
+                staff_row['holiday_counts'].append(count)
+                staff_row['total_bank_holidays'] += count
             
             bank_holiday_staff_list.append(staff_row)
     
@@ -587,10 +571,134 @@ def rota_statistics(request):
         'shift_type_stats': dict(shift_type_stats),
         'seniority_stats': dict(seniority_stats),
         'bank_holiday_staff': bank_holiday_staff_list,
-        'bank_holiday_columns': bank_holiday_columns,
+        'bank_holiday_types': sorted_bank_holiday_types,
         'year_range': year_range,
         'months': [(i, calendar.month_name[i]) for i in range(1, 13)],
         'quarters': [(i, f'Q{i}') for i in range(1, 5)],
     }
     
     return render(request, 'records/rota_statistics.html', context)
+
+
+@require_staff_permission
+def bank_holiday_detail(request):
+    """Display detailed year-by-year bank holiday coverage breakdown"""
+    # Last 5 years + full current year analysis
+    current_year = datetime.now().year
+    five_years_ago = datetime(current_year - 4, 1, 1).date()  # Start of 5 years ago
+    end_of_current_year = datetime(current_year, 12, 31).date()  # End of current year
+    
+    # Get all bank holiday shifts from the last 5 years including full current year
+    bank_holiday_shifts = (
+        RotaShift.objects
+        .filter(
+            rota_entry__date__gte=five_years_ago,
+            rota_entry__date__lte=end_of_current_year
+        )
+        .select_related('staff__user', 'rota_entry')
+        .order_by('rota_entry__date')
+    )
+    
+    # Filter only shifts that occurred on bank holidays
+    bank_holiday_rota_shifts = []
+    for shift in bank_holiday_shifts:
+        if BankHoliday.is_bank_holiday(shift.rota_entry.date):
+            bank_holiday_rota_shifts.append(shift)
+    
+    # Group by year and get ALL bank holidays for each year
+    years_data = {}
+    for year in range(current_year - 4, current_year + 1):  # Last 5 years
+        years_data[year] = {
+            'shifts': [],
+            'all_bank_holidays': [],
+            'staff_stats': defaultdict(lambda: {'staff': None, 'bank_holiday_counts': {}}),
+            'bank_holiday_columns': [],
+            'bank_holiday_staff_list': []
+        }
+        
+        # Get ALL bank holidays for this year (whether they have rota or not)
+        year_start = datetime(year, 1, 1).date()
+        year_end = datetime(year, 12, 31).date()
+        year_bank_holidays = BankHoliday.objects.filter(
+            date__gte=year_start,
+            date__lte=year_end
+        ).order_by('date')
+        years_data[year]['all_bank_holidays'] = list(year_bank_holidays)
+    
+    # Process shifts by year (to see which holidays have coverage)
+    for shift in bank_holiday_rota_shifts:
+        year = shift.rota_entry.date.year
+        if year in years_data:
+            years_data[year]['shifts'].append(shift)
+            
+            # Find the bank holiday for this date
+            try:
+                bank_holiday = BankHoliday.objects.get(date=shift.rota_entry.date)
+                
+                # Build staff statistics for this year
+                staff_id = shift.staff.id
+                if years_data[year]['staff_stats'][staff_id]['staff'] is None:
+                    years_data[year]['staff_stats'][staff_id]['staff'] = shift.staff
+                
+                bh_key = f"{bank_holiday.title}_{bank_holiday.date.strftime('%m-%d')}"
+                if bh_key not in years_data[year]['staff_stats'][staff_id]['bank_holiday_counts']:
+                    years_data[year]['staff_stats'][staff_id]['bank_holiday_counts'][bh_key] = {
+                        'count': 0,
+                        'bank_holiday': bank_holiday
+                    }
+                years_data[year]['staff_stats'][staff_id]['bank_holiday_counts'][bh_key]['count'] += 1
+                
+            except BankHoliday.DoesNotExist:
+                pass
+    
+    # Process each year's data
+    for year, year_data in years_data.items():
+        # Use ALL bank holidays for this year (already sorted by date)
+        year_bank_holidays = year_data['all_bank_holidays']
+        
+        # Create columns from all bank holidays
+        year_data['bank_holiday_columns'] = []
+        for bh in year_bank_holidays:
+            bh_key = f"{bh.title}_{bh.date.strftime('%m-%d')}"
+            year_data['bank_holiday_columns'].append({
+                'key': bh_key,
+                'title': bh.title,
+                'date': bh.date,
+                'display': f"{bh.title} ({bh.date.strftime('%d/%m')})"
+            })
+        
+        # Convert staff stats to list with aligned columns
+        year_data['bank_holiday_staff_list'] = []
+        for data in year_data['staff_stats'].values():
+            if data['staff'] is not None:
+                staff_row = {
+                    'staff': data['staff'],
+                    'columns': [],
+                    'total_bank_holidays': 0
+                }
+                
+                # Fill in data for each column
+                for column in year_data['bank_holiday_columns']:
+                    if column['key'] in data['bank_holiday_counts']:
+                        count = data['bank_holiday_counts'][column['key']]['count']
+                        staff_row['columns'].append(count)
+                        staff_row['total_bank_holidays'] += count
+                    else:
+                        staff_row['columns'].append(0)
+                
+                year_data['bank_holiday_staff_list'].append(staff_row)
+        
+        # Sort by staff name
+        year_data['bank_holiday_staff_list'].sort(
+            key=lambda x: (x['staff'].user.last_name or x['staff'].user.username, x['staff'].user.first_name or '')
+        )
+    
+    # Filter out years with no bank holidays (keep all years that have bank holidays, even without staff assignments)
+    years_with_data = {year: data for year, data in years_data.items() if data['all_bank_holidays']}
+    
+    context = {
+        'years_data': dict(sorted(years_with_data.items(), reverse=True)),  # Most recent first
+        'current_year': current_year,
+    }
+    
+    return render(request, 'records/bank_holiday_detail.html', context)
