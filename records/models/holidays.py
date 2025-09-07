@@ -36,7 +36,16 @@ class BankHoliday(models.Model):
         Args:
             source: "auto" (try cached file first, then API), "local", or "api"
             region: "england-and-wales", "scotland", or "northern-ireland"
+        
+        Note: This system only supports England and Wales bank holidays.
+        Other regions will be ignored to maintain consistency.
         """
+        # Force region to england-and-wales to exclude Scottish and Northern Ireland holidays
+        if region != "england-and-wales":
+            import logging
+            logger = logging.getLogger('records.bank_holidays')
+            logger.warning(f"Region '{region}' requested but forcing 'england-and-wales' to exclude Scottish holidays")
+            region = "england-and-wales"
         import json
         import os
         import requests

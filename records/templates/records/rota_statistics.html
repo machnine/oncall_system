@@ -1,0 +1,448 @@
+{% extends "records/base.html" %}
+{% load static %}
+{% block title %}
+    Rota Statistics - {{ period_label }}
+{% endblock title %}
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>
+                        <i class="bi bi-bar-chart"></i> Rota Statistics - {{ period_label }}
+                    </h4>
+                    <!-- Period Selection -->
+                    <div class="d-flex align-items-center gap-2">
+                        <form method="get" id="periodForm" class="d-flex align-items-center gap-2">
+                            <select name="period" class="form-select form-select-sm" onchange="togglePeriodFields()">
+                                <option value="yearly" {% if period_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                                <option value="quarterly" {% if period_type == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                                <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                            </select>
+                            
+                            <select name="year" class="form-select form-select-sm">
+                                {% for year_option in year_range %}
+                                    <option value="{{ year_option }}" {% if year_option == year %}selected{% endif %}>{{ year_option }}</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <select name="quarter" class="form-select form-select-sm" id="quarterSelect" {% if period_type != 'quarterly' %}style="display:none"{% endif %}>
+                                {% for q_value, q_label in quarters %}
+                                    <option value="{{ q_value }}" {% if q_value|stringformat:"s" == quarter %}selected{% endif %}>{{ q_label }}</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <select name="month" class="form-select form-select-sm" id="monthSelect" {% if period_type != 'monthly' %}style="display:none"{% endif %}>
+                                {% for m_value, m_label in months %}
+                                    <option value="{{ m_value }}" {% if m_value|stringformat:"s" == month %}selected{% endif %}>{{ m_label }}</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Shifts</h6>
+                            <h4>{{ overall_stats.total_shifts }}</h4>
+                        </div>
+                        <i class="bi bi-calendar-check icon-lg text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Days Covered</h6>
+                            <h4>{{ overall_stats.total_days_covered }}</h4>
+                        </div>
+                        <i class="bi bi-calendar-week icon-lg text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Staff Involved</h6>
+                            <h4>{{ overall_stats.staff_count }}</h4>
+                        </div>
+                        <i class="bi bi-people icon-lg text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">NHSP Shifts</h6>
+                            <h4>{{ overall_stats.nhsp_shifts }}</h4>
+                        </div>
+                        <i class="bi bi-exclamation-triangle icon-lg text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Staff Statistics by Seniority Level -->
+    
+    <!-- Trainee Statistics -->
+    {% if trainee_staff %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="bi bi-person-plus"></i> Trainee Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="traineeTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable-header col-width-25" onclick="sortTable('traineeTable', 0)">
+                                    Staff <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('traineeTable', 1)">
+                                    Total Shifts <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('traineeTable', 2)">
+                                    Weekdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('traineeTable', 3)">
+                                    Saturdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('traineeTable', 4)">
+                                    Sundays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('traineeTable', 5)">
+                                    Bank Holidays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('traineeTable', 6)">
+                                    NHSP <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff_stat in trainee_staff %}
+                                <tr>
+                                    <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2" 
+                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
+                                            </div>
+                                            <div>
+                                                <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">{{ staff_stat.seniority_breakdown.trainee }}</span>
+                                    </td>
+                                    <td class="text-center">{{ staff_stat.weekday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.saturday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.sunday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.bank_holiday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.nhsp_shifts }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- On-Call Statistics -->
+    {% if oncall_staff %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="bi bi-person-check"></i> On-Call Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="oncallTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable-header col-width-25" onclick="sortTable('oncallTable', 0)">
+                                    Staff <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('oncallTable', 1)">
+                                    Total Shifts <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('oncallTable', 2)">
+                                    Weekdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('oncallTable', 3)">
+                                    Saturdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('oncallTable', 4)">
+                                    Sundays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('oncallTable', 5)">
+                                    Bank Holidays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('oncallTable', 6)">
+                                    NHSP <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff_stat in oncall_staff %}
+                                <tr>
+                                    <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2" 
+                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
+                                            </div>
+                                            <div>
+                                                <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ staff_stat.seniority_breakdown.oncall }}</span>
+                                    </td>
+                                    <td class="text-center">{{ staff_stat.weekday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.saturday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.sunday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.bank_holiday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.nhsp_shifts }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Senior Cover Statistics -->
+    {% if senior_staff %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="bi bi-person-badge"></i> Senior Cover Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="seniorTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable-header col-width-25" onclick="sortTable('seniorTable', 0)">
+                                    Staff <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('seniorTable', 1)">
+                                    Total Shifts <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('seniorTable', 2)">
+                                    Weekdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('seniorTable', 3)">
+                                    Saturdays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-10" onclick="sortTable('seniorTable', 4)">
+                                    Sundays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('seniorTable', 5)">
+                                    Bank Holidays <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                <th class="text-center sortable-header col-width-15" onclick="sortTable('seniorTable', 6)">
+                                    NHSP <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff_stat in senior_staff %}
+                                <tr>
+                                    <td data-sort="{{ staff_stat.staff.user.last_name|default:staff_stat.staff.user.username }}{{ staff_stat.staff.user.first_name }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2" 
+                                                 style="width: 12px; height: 12px; background-color: {{ staff_stat.staff.color }}; border-radius: 2px;">
+                                            </div>
+                                            <div>
+                                                <strong>{{ staff_stat.staff.user.last_name }}, {{ staff_stat.staff.user.first_name|default:staff_stat.staff.user.username }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning text-dark">{{ staff_stat.seniority_breakdown.senior }}</span>
+                                    </td>
+                                    <td class="text-center">{{ staff_stat.weekday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.saturday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.sunday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.bank_holiday_shifts }}</td>
+                                    <td class="text-center">{{ staff_stat.nhsp_shifts }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Bank Holiday Statistics (Last 5 Years) -->
+    {% if bank_holiday_staff and bank_holiday_columns %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="bi bi-calendar-event"></i> Bank Holiday Coverage (Last 5 Years)</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="bankHolidayTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable-header" onclick="sortTable('bankHolidayTable', 0)">
+                                    Staff <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                                {% for column in bank_holiday_columns %}
+                                    <th class="text-center sortable-header" onclick="sortTable('bankHolidayTable', {{ forloop.counter }})">
+                                        {{ column.title }}<br><small class="text-muted">{{ column.year }}</small> <i class="bi bi-arrow-down-up"></i>
+                                    </th>
+                                {% endfor %}
+                                <th class="text-center sortable-header" onclick="sortTable('bankHolidayTable', {{ bank_holiday_columns|length|add:1 }})">
+                                    Total <i class="bi bi-arrow-down-up"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff_data in bank_holiday_staff %}
+                                <tr>
+                                    <td data-sort="{{ staff_data.staff.user.last_name|default:staff_data.staff.user.username }}{{ staff_data.staff.user.first_name }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2" 
+                                                 style="width: 12px; height: 12px; background-color: {{ staff_data.staff.color }}; border-radius: 2px;">
+                                            </div>
+                                            <div>
+                                                <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% for count in staff_data.columns %}
+                                        <td class="text-center">
+                                            {% if count > 0 %}
+                                                <span class="badge bg-success">{{ count }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="text-center">
+                                        <strong>{{ staff_data.total_bank_holidays }}</strong>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- No data state -->
+    {% if not trainee_staff and not oncall_staff and not senior_staff %}
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x icon-xxl empty-state"></i>
+                    <h4 class="mt-3 text-muted">No Rota Data for {{ period_label }}</h4>
+                    <p class="text-muted">No staff have been assigned to rota shifts during this period.</p>
+                    <a href="{% url 'rota_calendar' %}" class="btn btn-primary">
+                        <i class="bi bi-calendar-plus"></i> View Rota Calendar
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        function togglePeriodFields() {
+            const periodType = document.querySelector('select[name="period"]').value;
+            const quarterSelect = document.getElementById('quarterSelect');
+            const monthSelect = document.getElementById('monthSelect');
+            
+            if (periodType === 'quarterly') {
+                quarterSelect.style.display = 'block';
+                monthSelect.style.display = 'none';
+            } else if (periodType === 'monthly') {
+                quarterSelect.style.display = 'none';
+                monthSelect.style.display = 'block';
+            } else {
+                quarterSelect.style.display = 'none';
+                monthSelect.style.display = 'none';
+            }
+        }
+
+        // Table sorting function
+        function sortTable(tableId, columnIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Skip if no data rows (only empty state message)
+            if (rows.length <= 1 && rows[0].cells.length === 7 && rows[0].cells[0].colSpan === 7) {
+                return;
+            }
+
+            // Determine sort direction
+            const currentSort = table.getAttribute('data-sort');
+            const isAsc = currentSort !== `${columnIndex}-asc`;
+            table.setAttribute('data-sort', isAsc ? `${columnIndex}-asc` : `${columnIndex}-desc`);
+
+            rows.sort((a, b) => {
+                let aVal, bVal;
+                
+                if (columnIndex === 0) {
+                    // Sort by data-sort attribute for staff names (lastname, firstname)
+                    aVal = a.cells[columnIndex].getAttribute('data-sort') || '';
+                    bVal = b.cells[columnIndex].getAttribute('data-sort') || '';
+                } else {
+                    // Sort numerically for other columns (extract number from badge or text)
+                    const aBadge = a.cells[columnIndex].querySelector('.badge');
+                    const bBadge = b.cells[columnIndex].querySelector('.badge');
+                    
+                    aVal = aBadge ? parseInt(aBadge.textContent) : parseInt(a.cells[columnIndex].textContent) || 0;
+                    bVal = bBadge ? parseInt(bBadge.textContent) : parseInt(b.cells[columnIndex].textContent) || 0;
+                }
+
+                if (columnIndex === 0) {
+                    // String comparison for names
+                    return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                } else {
+                    // Numeric comparison for counts
+                    return isAsc ? aVal - bVal : bVal - aVal;
+                }
+            });
+
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Auto-sort tables by staff name on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const tableIds = ['traineeTable', 'oncallTable', 'seniorTable', 'bankHolidayTable'];
+            tableIds.forEach(tableId => {
+                const table = document.getElementById(tableId);
+                if (table) {
+                    sortTable(tableId, 0); // Sort by staff name (column 0)
+                }
+            });
+        });
+    </script>
+{% endblock content %}

@@ -23,4 +23,5 @@ urlpatterns = [
     path('rota/remove-staff/', views.remove_staff_from_rota, name='remove_staff_from_rota'),
     path('rota/toggle-shift-type/', views.toggle_shift_type, name='toggle_shift_type'),
     path('rota/clear-day/', views.clear_day_staff, name='clear_day_staff'),
+    path('rota/statistics/', views.rota_statistics, name='rota_statistics'),
 ]

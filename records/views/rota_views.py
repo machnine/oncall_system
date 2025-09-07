@@ -2,8 +2,10 @@
 
 import calendar
 import json
-from datetime import date, datetime
+from collections import defaultdict
+from datetime import date, datetime, timedelta
 
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
@@ -333,3 +335,262 @@ def remove_staff_from_rota(request):
         return JsonResponse({"error": "Invalid JSON data"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_staff_permission
+def rota_statistics(request):
+    """Display comprehensive rota statistics by period and day type"""
+    # Get period from GET parameters (default to current year)
+    period_type = request.GET.get('period', 'yearly')  # yearly, quarterly, monthly
+    year = int(request.GET.get('year', datetime.now().year))
+    quarter = request.GET.get('quarter', '1')
+    month = request.GET.get('month', '1')
+    
+    # Build date filter based on period
+    date_filters = {}
+    period_label = ""
+    
+    if period_type == 'monthly':
+        month = int(month)
+        date_filters['rota_entry__date__year'] = year
+        date_filters['rota_entry__date__month'] = month
+        period_label = f"{calendar.month_name[month]} {year}"
+        
+    elif period_type == 'quarterly':
+        quarter = int(quarter)
+        quarter_months = {
+            1: [1, 2, 3],
+            2: [4, 5, 6], 
+            3: [7, 8, 9],
+            4: [10, 11, 12]
+        }
+        date_filters['rota_entry__date__year'] = year
+        date_filters['rota_entry__date__month__in'] = quarter_months[quarter]
+        period_label = f"Q{quarter} {year}"
+        
+    else:  # yearly
+        date_filters['rota_entry__date__year'] = year
+        period_label = f"Year {year}"
+
+    # Get all rota shifts for the period with related data
+    shifts = (
+        RotaShift.objects
+        .filter(**date_filters)
+        .select_related('staff__user', 'rota_entry')
+        .order_by('rota_entry__date')
+    )
+    
+    # Get all unique staff who worked during this period
+    staff_stats = defaultdict(lambda: {
+        'staff': None,
+        'total_shifts': 0,
+        'weekday_shifts': 0,
+        'saturday_shifts': 0,
+        'sunday_shifts': 0,
+        'bank_holiday_shifts': 0,
+        'normal_shifts': 0,
+        'nhsp_shifts': 0,
+        'seniority_breakdown': {'trainee': 0, 'oncall': 0, 'senior': 0}
+    })
+    
+    # Overall statistics
+    overall_stats = {
+        'total_shifts': 0,
+        'total_days_covered': 0,
+        'weekday_shifts': 0,
+        'saturday_shifts': 0,
+        'sunday_shifts': 0,
+        'bank_holiday_shifts': 0,
+        'normal_shifts': 0,
+        'nhsp_shifts': 0,
+        'staff_count': 0
+    }
+    
+    # Day type breakdown
+    day_type_stats = defaultdict(int)
+    shift_type_stats = defaultdict(int)
+    seniority_stats = defaultdict(int)
+    
+    # Track unique dates to count days covered
+    unique_dates = set()
+    
+    # Process each shift
+    for shift in shifts:
+        staff_id = shift.staff.id
+        rota_entry = shift.rota_entry
+        
+        # Initialize staff record if first time seeing them
+        if staff_stats[staff_id]['staff'] is None:
+            staff_stats[staff_id]['staff'] = shift.staff
+        
+        # Track unique dates
+        unique_dates.add(rota_entry.date)
+        
+        # Determine day type
+        day_type = rota_entry.day_type  # Uses the property from model
+        
+        # Update staff statistics
+        staff_stats[staff_id]['total_shifts'] += 1
+        staff_stats[staff_id]['seniority_breakdown'][shift.seniority_level] += 1
+        
+        if day_type == 'Weekday':
+            staff_stats[staff_id]['weekday_shifts'] += 1
+        elif day_type == 'Saturday':
+            staff_stats[staff_id]['saturday_shifts'] += 1
+        elif day_type == 'Sunday':
+            staff_stats[staff_id]['sunday_shifts'] += 1
+        elif day_type == 'BankHoliday':
+            staff_stats[staff_id]['bank_holiday_shifts'] += 1
+            
+        if rota_entry.shift_type == 'nhsp':
+            staff_stats[staff_id]['nhsp_shifts'] += 1
+        else:
+            staff_stats[staff_id]['normal_shifts'] += 1
+            
+        # Update overall statistics
+        overall_stats['total_shifts'] += 1
+        day_type_stats[day_type] += 1
+        shift_type_stats[rota_entry.shift_type] += 1
+        seniority_stats[shift.seniority_level] += 1
+
+    # Finalize overall stats
+    overall_stats['total_days_covered'] = len(unique_dates)
+    overall_stats['weekday_shifts'] = day_type_stats['Weekday']
+    overall_stats['saturday_shifts'] = day_type_stats['Saturday']
+    overall_stats['sunday_shifts'] = day_type_stats['Sunday']
+    overall_stats['bank_holiday_shifts'] = day_type_stats['BankHoliday']
+    overall_stats['normal_shifts'] = shift_type_stats.get('normal', 0)
+    overall_stats['nhsp_shifts'] = shift_type_stats.get('nhsp', 0)
+    overall_stats['staff_count'] = len(staff_stats)
+    
+    # Convert staff_stats to sorted list
+    staff_list = sorted(
+        staff_stats.values(), 
+        key=lambda x: x['total_shifts'], 
+        reverse=True
+    )
+    
+    # Create separate lists for each seniority level (only if they have data)
+    trainee_staff = [s for s in staff_list if s['seniority_breakdown']['trainee'] > 0]
+    oncall_staff = [s for s in staff_list if s['seniority_breakdown']['oncall'] > 0] 
+    senior_staff = [s for s in staff_list if s['seniority_breakdown']['senior'] > 0]
+    
+    # Bank Holiday Analysis - Last 5 Years
+    five_years_ago = datetime.now().date() - timedelta(days=5*365)
+    
+    # Get all bank holiday shifts from the last 5 years
+    bank_holiday_shifts = (
+        RotaShift.objects
+        .filter(
+            rota_entry__date__gte=five_years_ago,
+            rota_entry__date__lte=datetime.now().date()
+        )
+        .select_related('staff__user', 'rota_entry')
+        .order_by('rota_entry__date')
+    )
+    
+    # Filter only shifts that occurred on bank holidays
+    bank_holiday_rota_shifts = []
+    for shift in bank_holiday_shifts:
+        if BankHoliday.is_bank_holiday(shift.rota_entry.date):
+            bank_holiday_rota_shifts.append(shift)
+    
+    # Get all unique bank holidays from the last 5 years with shifts
+    bank_holidays_with_shifts = set()
+    for shift in bank_holiday_rota_shifts:
+        try:
+            bank_holiday = BankHoliday.objects.get(date=shift.rota_entry.date)
+            bank_holidays_with_shifts.add(bank_holiday)
+        except BankHoliday.DoesNotExist:
+            pass
+    
+    # Sort bank holidays by date (most recent first)
+    sorted_bank_holidays = sorted(bank_holidays_with_shifts, key=lambda x: x.date, reverse=True)
+    
+    # Build staff bank holiday statistics
+    staff_bank_holiday_stats = defaultdict(lambda: {'staff': None, 'bank_holiday_counts': {}})
+    
+    for shift in bank_holiday_rota_shifts:
+        staff_id = shift.staff.id
+        if staff_bank_holiday_stats[staff_id]['staff'] is None:
+            staff_bank_holiday_stats[staff_id]['staff'] = shift.staff
+            
+        # Find the bank holiday for this date
+        try:
+            bank_holiday = BankHoliday.objects.get(date=shift.rota_entry.date)
+            bh_key = f"{bank_holiday.title}_{bank_holiday.date.year}"
+            
+            if bh_key not in staff_bank_holiday_stats[staff_id]['bank_holiday_counts']:
+                staff_bank_holiday_stats[staff_id]['bank_holiday_counts'][bh_key] = {
+                    'count': 0,
+                    'bank_holiday': bank_holiday
+                }
+            staff_bank_holiday_stats[staff_id]['bank_holiday_counts'][bh_key]['count'] += 1
+        except BankHoliday.DoesNotExist:
+            pass
+    
+    # Create unique bank holiday columns (title + year combinations)
+    bank_holiday_columns = []
+    for bh in sorted_bank_holidays:
+        bh_key = f"{bh.title}_{bh.date.year}"
+        bank_holiday_columns.append({
+            'key': bh_key,
+            'title': bh.title,
+            'year': bh.date.year,
+            'date': bh.date,
+            'display': f"{bh.title} {bh.date.year}"
+        })
+    
+    # Convert to list and prepare data with column alignment
+    bank_holiday_staff_list = []
+    for data in staff_bank_holiday_stats.values():
+        if data['staff'] is not None:
+            # Create aligned columns for each staff member
+            staff_row = {
+                'staff': data['staff'],
+                'columns': [],
+                'total_bank_holidays': 0
+            }
+            
+            # Fill in data for each column
+            for column in bank_holiday_columns:
+                if column['key'] in data['bank_holiday_counts']:
+                    count = data['bank_holiday_counts'][column['key']]['count']
+                    staff_row['columns'].append(count)
+                    staff_row['total_bank_holidays'] += count
+                else:
+                    staff_row['columns'].append(0)
+            
+            bank_holiday_staff_list.append(staff_row)
+    
+    # Sort by staff name
+    bank_holiday_staff_list.sort(
+        key=lambda x: (x['staff'].user.last_name or x['staff'].user.username, x['staff'].user.first_name or '')
+    )
+    
+    # Build period selection options
+    current_year = datetime.now().year
+    year_range = range(current_year - 5, current_year + 2)
+    
+    context = {
+        'period_type': period_type,
+        'year': year,
+        'quarter': quarter,
+        'month': month,
+        'period_label': period_label,
+        'staff_statistics': staff_list,
+        'trainee_staff': trainee_staff,
+        'oncall_staff': oncall_staff,
+        'senior_staff': senior_staff,
+        'overall_stats': overall_stats,
+        'day_type_stats': dict(day_type_stats),
+        'shift_type_stats': dict(shift_type_stats),
+        'seniority_stats': dict(seniority_stats),
+        'bank_holiday_staff': bank_holiday_staff_list,
+        'bank_holiday_columns': bank_holiday_columns,
+        'year_range': year_range,
+        'months': [(i, calendar.month_name[i]) for i in range(1, 13)],
+        'quarters': [(i, f'Q{i}') for i in range(1, 5)],
+    }
+    
+    return render(request, 'records/rota_statistics.html', context)

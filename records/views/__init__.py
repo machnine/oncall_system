@@ -17,4 +17,5 @@ from .rota_views import (
     clear_day_staff,
     create_rota_entry,
     remove_staff_from_rota,
+    rota_statistics,
 )

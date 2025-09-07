@@ -19,9 +19,9 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--region',
-            choices=['england-and-wales', 'scotland', 'northern-ireland'],
+            choices=['england-and-wales'],
             default='england-and-wales',
-            help='Region to sync holidays for (default: england-and-wales)',
+            help='Region to sync holidays for (only england-and-wales supported)',
         )
         parser.add_argument(
             '--force',
