@@ -41,27 +41,54 @@
                             <i class="bi bi-journal"></i>
                         </a>
                         {% if user.is_staff %}
-                            <a class="nav-link"
-                               href="{% url 'signoff_management' %}"
-                               title="Monthly Sign-offs"
-                               data-bs-toggle="tooltip"
-                               data-bs-placement="bottom">
-                                <i class="bi bi-clipboard-check"></i>
-                            </a>
-                            <a class="nav-link"
-                               href="{% url 'monthly_report' %}"
-                               title="Reports"
-                               data-bs-toggle="tooltip"
-                               data-bs-placement="bottom">
-                                <i class="bi bi-file-earmark-spreadsheet"></i>
-                            </a>
-                            <a class="nav-link"
-                               href="{% url 'rota_statistics' %}"
-                               title="Rota Statistics"
-                               data-bs-toggle="tooltip"
-                               data-bs-placement="bottom">
-                                <i class="bi bi-bar-chart"></i>
-                            </a>
+                            <!-- Statistics Dropdown -->
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle"
+                                   href="#"
+                                   id="statisticsDropdown"
+                                   role="button"
+                                   data-bs-toggle="dropdown"
+                                   aria-expanded="false"
+                                   title="Statistics">
+                                    <i class="bi bi-bar-chart"></i>
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="statisticsDropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'rota_statistics' %}">
+                                            <i class="bi bi-calendar-week"></i> Rota Statistics
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'bank_holiday_detail' %}">
+                                            <i class="bi bi-calendar-event"></i> Bank Holiday Coverage
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- Monthly Reports Dropdown -->
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle"
+                                   href="#"
+                                   id="reportsDropdown"
+                                   role="button"
+                                   data-bs-toggle="dropdown"
+                                   aria-expanded="false"
+                                   title="Monthly Reports">
+                                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'monthly_report' %}">
+                                            <i class="bi bi-table"></i> Monthly Report
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'signoff_management' %}">
+                                            <i class="bi bi-clipboard-check"></i> Monthly Sign-offs
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         {% endif %}
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle"

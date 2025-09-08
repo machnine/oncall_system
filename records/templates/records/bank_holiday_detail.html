@@ -5,16 +5,6 @@
 {% endblock title %}
 {% block extra_css %}
     <style>
-    .year-section {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    .year-header {
-        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        color: white;
-        font-weight: 600;
-    }
     .table th {
         font-size: 0.85rem;
         font-weight: 600;
@@ -33,149 +23,212 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2>
-                            <i class="bi bi-calendar-event"></i> Bank Holiday Coverage Detail
+                            <i class="bi bi-calendar-event"></i> Bank Holiday Coverage
                         </h2>
-                        <p class="text-muted mb-0">Year-by-year breakdown of bank holiday shift coverage</p>
                     </div>
-                    <a href="{% url 'rota_statistics' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to Statistics
-                    </a>
                 </div>
             </div>
         </div>
+        <!-- 5-Year Summary -->
+        {% if summary_important_staff %}
+            <div class="card mb-4">
+                <!-- Summary Header -->
+                <div class="card-header">
+                    <h6>
+                        <i class="bi bi-calendar-heart"></i> Key Bank Holiday Coverage (Last 5 years)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="col-width-25">Staff</th>
+                                    {% for holiday_type in summary_important_types %}
+                                        <th class="text-center col-width-12">{{ holiday_type }}</th>
+                                    {% endfor %}
+                                    <th class="text-center col-width-12">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff_data in summary_important_staff %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2"
+                                                     style="width: 12px;
+                                                            height: 12px;
+                                                            background-color: {{ staff_data.staff.color }};
+                                                            border-radius: 2px"></div>
+                                                <div>
+                                                    <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {% for count in staff_data.holiday_counts %}
+                                            <td class="text-center">
+                                                {% if count > 0 %}
+                                                    <span class="badge bg-success">{{ count }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                        <td class="text-center">
+                                            <strong>{{ staff_data.total_holidays }}</strong>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
         <!-- Year-by-Year Breakdown -->
         {% if years_data %}
+            <!-- Master Expand/Collapse Button -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Yearly Breakdown</h5>
+                <button class="btn btn-outline-secondary" onclick="toggleAllYears()" id="masterToggleBtn">
+                    <i class="bi bi-caret-down"></i> Expand All
+                </button>
+            </div>
             {% for year, year_data in years_data.items %}
                 {% if year_data.all_bank_holidays %}
-                    <div class="year-section mb-4">
+                    <div class="card mb-4">
                         <!-- Year Header -->
-                        <div class="year-header p-3 d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">
-                                <i class="bi bi-calendar-range"></i> {{ year }}
-                                <small class="ms-2 opacity-75">
-                                    (<span id="staffCount{{ year }}">{{ year_data.important_staff_list|length }}</span> staff with assignments,
-                                    <span id="holidayCount{{ year }}">{{ year_data.important_columns|length }}</span> of {{ year_data.bank_holiday_columns|length }} holidays shown)
-                                </small>
-                            </h4>
-                            <button class="btn btn-sm btn-outline-light"
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <span class="text-primary fs-5">{{ year }}</span>
+                            </h6>
+                            <button class="btn btn-sm me-2"
+                                    onclick="toggleYear('{{ year }}')"
+                                    id="yearToggleBtn{{ year }}">
+                                <i class="bi bi-caret-down"></i>
+                            </button>
+                            <button class="btn btn-sm"
                                     onclick="toggleHolidays('{{ year }}')"
-                                    id="toggleBtn{{ year }}">
-                                <i class="bi bi-chevron-down"></i> Show All Holidays
+                                    id="toggleBtn{{ year }}"
+                                    style="display: none">
+                                <i class="bi bi-caret-down"></i> Show all days
                             </button>
                         </div>
-                        <!-- Important Holidays Table (Default View) -->
-                        <div class="table-responsive" id="importantTable{{ year }}">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="col-width-25">Staff</th>
-                                        {% for column in year_data.important_columns %}
-                                            <th class="text-center col-width-15">
-                                                <div>{{ column.title }}</div>
-                                                <small class="text-muted">{{ column.date|date:"d/m" }}</small>
-                                            </th>
-                                        {% endfor %}
-                                        <th class="text-center col-width-12">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if year_data.important_staff_list %}
-                                        {% for staff_data in year_data.important_staff_list %}
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="me-2"
-                                                             style="width: 12px;
-                                                                    height: 12px;
-                                                                    background-color: {{ staff_data.staff.color }};
-                                                                    border-radius: 2px"></div>
-                                                        <div>
-                                                            <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                        <div class="card-body collapse" id="yearBody{{ year }}">
+                            <!-- Important Holidays Table (Default View) -->
+                            <div class="table-responsive" id="importantTable{{ year }}">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="col-width-25">Staff</th>
+                                            {% for column in year_data.important_columns %}
+                                                <th class="text-center col-width-15">
+                                                    <div>{{ column.title }}</div>
+                                                    <small class="text-muted">{{ column.date|date:"d/m" }}</small>
+                                                </th>
+                                            {% endfor %}
+                                            <th class="text-center col-width-12">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if year_data.important_staff_list %}
+                                            {% for staff_data in year_data.important_staff_list %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="me-2"
+                                                                 style="width: 12px;
+                                                                        height: 12px;
+                                                                        background-color: {{ staff_data.staff.color }};
+                                                                        border-radius: 2px"></div>
+                                                            <div>
+                                                                <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                {% for count in staff_data.columns %}
-                                                    <td class="text-center">
-                                                        {% if count > 0 %}
-                                                            <i class="bi bi-check-circle-fill text-success" title="Covered"></i>
-                                                        {% else %}
-                                                            <span class="text-muted">-</span>
-                                                        {% endif %}
                                                     </td>
-                                                {% endfor %}
-                                                <td class="text-center">
-                                                    <strong>{{ staff_data.total_important_holidays }}</strong>
+                                                    {% for count in staff_data.columns %}
+                                                        <td class="text-center">
+                                                            {% if count > 0 %}
+                                                                <i class="bi bi-check-circle-fill text-success" title="Covered"></i>
+                                                            {% else %}
+                                                                <span class="text-muted">-</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endfor %}
+                                                    <td class="text-center">
+                                                        <strong>{{ staff_data.total_important_holidays }}</strong>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="{{ year_data.important_columns|length|add:2 }}" class="text-center text-muted py-4">
+                                                    <i class="bi bi-calendar-x"></i> No staff assigned to important bank holidays for {{ year }}
+                                                    <br>
+                                                    <small>Important bank holidays are listed above but no rota assignments have been made yet.</small>
                                                 </td>
                                             </tr>
-                                        {% endfor %}
-                                    {% else %}
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- All Holidays Table (Expanded View) -->
+                            <div class="table-responsive" id="allTable{{ year }}" style="display: none;">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
                                         <tr>
-                                            <td colspan="{{ year_data.important_columns|length|add:2 }}" class="text-center text-muted py-4">
-                                                <i class="bi bi-calendar-x"></i> No staff assigned to important bank holidays for {{ year }}
-                                                <br>
-                                                <small>Important bank holidays are listed above but no rota assignments have been made yet.</small>
-                                            </td>
+                                            <th class="col-width-25">Staff</th>
+                                            {% for column in year_data.bank_holiday_columns %}
+                                                <th class="text-center col-width-15">
+                                                    <div>{{ column.title }}</div>
+                                                    <small class="text-muted">{{ column.date|date:"d/m" }}</small>
+                                                </th>
+                                            {% endfor %}
+                                            <th class="text-center col-width-12">Total</th>
                                         </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- All Holidays Table (Expanded View) -->
-                        <div class="table-responsive" id="allTable{{ year }}" style="display: none;">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="col-width-25">Staff</th>
-                                        {% for column in year_data.bank_holiday_columns %}
-                                            <th class="text-center col-width-15">
-                                                <div>{{ column.title }}</div>
-                                                <small class="text-muted">{{ column.date|date:"d/m" }}</small>
-                                            </th>
-                                        {% endfor %}
-                                        <th class="text-center col-width-12">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if year_data.bank_holiday_staff_list %}
-                                        {% for staff_data in year_data.bank_holiday_staff_list %}
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="me-2"
-                                                             style="width: 12px;
-                                                                    height: 12px;
-                                                                    background-color: {{ staff_data.staff.color }};
-                                                                    border-radius: 2px"></div>
-                                                        <div>
-                                                            <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                                    </thead>
+                                    <tbody>
+                                        {% if year_data.bank_holiday_staff_list %}
+                                            {% for staff_data in year_data.bank_holiday_staff_list %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="me-2"
+                                                                 style="width: 12px;
+                                                                        height: 12px;
+                                                                        background-color: {{ staff_data.staff.color }};
+                                                                        border-radius: 2px"></div>
+                                                            <div>
+                                                                <strong>{{ staff_data.staff.user.last_name }}, {{ staff_data.staff.user.first_name|default:staff_data.staff.user.username }}</strong>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                {% for count in staff_data.columns %}
-                                                    <td class="text-center">
-                                                        {% if count > 0 %}
-                                                            <i class="bi bi-check-circle-fill text-success" title="Covered"></i>
-                                                        {% else %}
-                                                            <span class="text-muted">-</span>
-                                                        {% endif %}
                                                     </td>
-                                                {% endfor %}
-                                                <td class="text-center">
-                                                    <strong>{{ staff_data.total_bank_holidays }}</strong>
+                                                    {% for count in staff_data.columns %}
+                                                        <td class="text-center">
+                                                            {% if count > 0 %}
+                                                                <i class="bi bi-check-circle-fill text-success" title="Covered"></i>
+                                                            {% else %}
+                                                                <span class="text-muted">-</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endfor %}
+                                                    <td class="text-center">
+                                                        <strong>{{ staff_data.total_bank_holidays }}</strong>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="{{ year_data.bank_holiday_columns|length|add:2 }}" class="text-center text-muted py-4">
+                                                    <i class="bi bi-calendar-x"></i> No staff assigned to bank holidays for {{ year }}
+                                                    <br>
+                                                    <small>Bank holidays are listed above but no rota assignments have been made yet.</small>
                                                 </td>
                                             </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="{{ year_data.bank_holiday_columns|length|add:2 }}" class="text-center text-muted py-4">
-                                                <i class="bi bi-calendar-x"></i> No staff assigned to bank holidays for {{ year }}
-                                                <br>
-                                                <small>Bank holidays are listed above but no rota assignments have been made yet.</small>
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -207,6 +260,62 @@ const yearData = {
     {% endfor %}
 };
 
+// Master expand/collapse all years
+function toggleAllYears() {
+    const masterBtn = document.getElementById('masterToggleBtn');
+    const allCollapsed = document.querySelectorAll('.card-body.collapse:not(.show)').length > 0;
+    
+    Object.keys(yearData).forEach(year => {
+        const yearBody = document.getElementById('yearBody' + year);
+        const yearToggleBtn = document.getElementById('yearToggleBtn' + year);
+        
+        if (allCollapsed) {
+            // Expand all
+            yearBody.classList.add('show');
+            yearToggleBtn.innerHTML = '<i class="bi bi-caret-up"></i>';
+            document.getElementById('toggleBtn' + year).style.display = 'inline-block';
+        } else {
+            // Collapse all
+            yearBody.classList.remove('show');
+            yearToggleBtn.innerHTML = '<i class="bi bi-caret-down"></i>';
+            document.getElementById('toggleBtn' + year).style.display = 'none';
+            // Reset holiday view to important holidays
+            resetHolidayView(year);
+        }
+    });
+    
+    if (allCollapsed) {
+        masterBtn.innerHTML = '<i class="bi bi-caret-up"></i> Collapse All';
+    } else {
+        masterBtn.innerHTML = '<i class="bi bi-caret-down"></i> Expand All';
+    }
+}
+
+// Individual year expand/collapse
+function toggleYear(year) {
+    const yearBody = document.getElementById('yearBody' + year);
+    const yearToggleBtn = document.getElementById('yearToggleBtn' + year);
+    const holidayToggleBtn = document.getElementById('toggleBtn' + year);
+    
+    if (yearBody.classList.contains('show')) {
+        // Collapse year
+        yearBody.classList.remove('show');
+        yearToggleBtn.innerHTML = '<i class="bi bi-caret-down"></i>';
+        holidayToggleBtn.style.display = 'none';
+        // Reset holiday view to important holidays
+        resetHolidayView(year);
+    } else {
+        // Expand year
+        yearBody.classList.add('show');
+        yearToggleBtn.innerHTML = '<i class="bi bi-caret-up"></i>';
+        holidayToggleBtn.style.display = 'inline-block';
+    }
+    
+    // Update master button state
+    updateMasterButtonState();
+}
+
+// Holiday view toggle (important vs all)
 function toggleHolidays(year) {
     const importantTable = document.getElementById('importantTable' + year);
     const allTable = document.getElementById('allTable' + year);
@@ -218,7 +327,7 @@ function toggleHolidays(year) {
         // Show all holidays
         importantTable.style.display = 'none';
         allTable.style.display = 'block';
-        toggleBtn.innerHTML = '<i class="bi bi-chevron-up"></i> Show Key Holidays Only';
+        toggleBtn.innerHTML = '<i class="bi bi-caret-up"></i> Key days only';
         
         // Update counts for all holidays view
         const allStaffCount = allTable.querySelectorAll('tbody tr:not([colspan])').length;
@@ -228,12 +337,42 @@ function toggleHolidays(year) {
         // Show important holidays only
         allTable.style.display = 'none';
         importantTable.style.display = 'block';
-        toggleBtn.innerHTML = '<i class="bi bi-chevron-down"></i> Show All Holidays';
+        toggleBtn.innerHTML = '<i class="bi bi-caret-down"></i> Show all days';
         
         // Update counts for important holidays view  
         const importantStaffCount = importantTable.querySelectorAll('tbody tr:not([colspan])').length;
         staffCountSpan.textContent = importantStaffCount;
         holidayCountSpan.textContent = yearData[year].importantColumns;
+    }
+}
+
+// Reset holiday view to important holidays only
+function resetHolidayView(year) {
+    const importantTable = document.getElementById('importantTable' + year);
+    const allTable = document.getElementById('allTable' + year);
+    const toggleBtn = document.getElementById('toggleBtn' + year);
+    const staffCountSpan = document.getElementById('staffCount' + year);
+    const holidayCountSpan = document.getElementById('holidayCount' + year);
+    
+    allTable.style.display = 'none';
+    importantTable.style.display = 'block';
+    toggleBtn.innerHTML = '<i class="bi bi-caret-down"></i> Show all days';
+    
+    // Update counts for important holidays view
+    const importantStaffCount = importantTable.querySelectorAll('tbody tr:not([colspan])').length;
+    staffCountSpan.textContent = importantStaffCount;
+    holidayCountSpan.textContent = yearData[year].importantColumns;
+}
+
+// Update master button state based on individual year states
+function updateMasterButtonState() {
+    const masterBtn = document.getElementById('masterToggleBtn');
+    const allCollapsed = document.querySelectorAll('.card-body.collapse:not(.show)').length > 0;
+    
+    if (allCollapsed) {
+        masterBtn.innerHTML = '<i class="bi bi-caret-down"></i> Expand All';
+    } else {
+        masterBtn.innerHTML = '<i class="bi bi-caret-up"></i> Collapse All';
     }
 }
     </script>
