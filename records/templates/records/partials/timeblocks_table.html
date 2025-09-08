@@ -163,9 +163,9 @@ html {
                                                     <span class="badge bg-{{ entry.task.color }} small">{{ entry.task.name }}</span>
                                                 </div>
                                                 <div class="col-width-21">
-                                                    {% if entry.detail %}
-                                                        <span class="small text-muted" title="{{ entry.detail.text }}" data-bs-toggle="tooltip">
-                                                            {{ entry.detail.text|truncatechars:30 }}
+                                                    {% if entry.details %}
+                                                        <span class="small text-muted" title="{{ entry.details }}" data-bs-toggle="tooltip">
+                                                            {{ entry.details|truncatechars:30 }}
                                                         </span>
                                                     {% else %}
                                                         <span class="text-muted">-</span>
