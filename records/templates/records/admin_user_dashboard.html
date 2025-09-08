@@ -25,7 +25,16 @@
     {% with is_admin_view=True %}
         {% include "records/partials/timeblocks_table.html" %}
     {% endwith %}
-    {% with is_admin_view=True %}
-        {% include "records/partials/timeblocks_javascript.html" %}
-    {% endwith %}
 {% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/timeblocks.js' %}"></script>
+<script>
+// Initialize hover effects for admin view
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initializeTimeblocksHoverEffects === 'function') {
+        initializeTimeblocksHoverEffects(true); // true = admin view
+    }
+});
+</script>
+{% endblock extra_js %}

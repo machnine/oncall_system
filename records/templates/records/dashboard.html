@@ -1,4 +1,5 @@
 {% extends "records/base.html" %}
+{% load static %}
 {% block title %}
     Monthly Records - {{ current_month }}
 {% endblock title %}
@@ -38,7 +39,16 @@
     {% with is_admin_view=False %}
         {% include "records/partials/timeblocks_table.html" %}
     {% endwith %}
-    {% with is_admin_view=False %}
-        {% include "records/partials/timeblocks_javascript.html" %}
-    {% endwith %}
 {% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/timeblocks.js' %}"></script>
+<script>
+// Initialize hover effects for non-admin view
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initializeTimeblocksHoverEffects === 'function') {
+        initializeTimeblocksHoverEffects(false); // false = not admin view
+    }
+});
+</script>
+{% endblock extra_js %}
