@@ -19,7 +19,7 @@ from ..utils.date_helpers import (
 from ..utils.decorators import require_oncall_staff, require_staff_permission
 
 
-@require_staff_permission
+@require_oncall_staff
 def rota_calendar(request):
     """Display monthly rota calendar"""
     # Get month/year from GET parameters with validation
