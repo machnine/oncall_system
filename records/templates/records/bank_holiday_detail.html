@@ -263,13 +263,13 @@ const yearData = {
 // Master expand/collapse all years
 function toggleAllYears() {
     const masterBtn = document.getElementById('masterToggleBtn');
-    const allCollapsed = document.querySelectorAll('.card-body.collapse:not(.show)').length > 0;
+    const isExpandAction = masterBtn.innerHTML.includes('Expand All');
     
     Object.keys(yearData).forEach(year => {
         const yearBody = document.getElementById('yearBody' + year);
         const yearToggleBtn = document.getElementById('yearToggleBtn' + year);
         
-        if (allCollapsed) {
+        if (isExpandAction) {
             // Expand all
             yearBody.classList.add('show');
             yearToggleBtn.innerHTML = '<i class="bi bi-caret-up"></i>';
@@ -284,7 +284,7 @@ function toggleAllYears() {
         }
     });
     
-    if (allCollapsed) {
+    if (isExpandAction) {
         masterBtn.innerHTML = '<i class="bi bi-caret-up"></i> Collapse All';
     } else {
         masterBtn.innerHTML = '<i class="bi bi-caret-down"></i> Expand All';
@@ -320,29 +320,17 @@ function toggleHolidays(year) {
     const importantTable = document.getElementById('importantTable' + year);
     const allTable = document.getElementById('allTable' + year);
     const toggleBtn = document.getElementById('toggleBtn' + year);
-    const staffCountSpan = document.getElementById('staffCount' + year);
-    const holidayCountSpan = document.getElementById('holidayCount' + year);
     
     if (allTable.style.display === 'none') {
         // Show all holidays
         importantTable.style.display = 'none';
         allTable.style.display = 'block';
         toggleBtn.innerHTML = '<i class="bi bi-caret-up"></i> Key days only';
-        
-        // Update counts for all holidays view
-        const allStaffCount = allTable.querySelectorAll('tbody tr:not([colspan])').length;
-        staffCountSpan.textContent = allStaffCount;
-        holidayCountSpan.textContent = yearData[year].allColumns;
     } else {
         // Show important holidays only
         allTable.style.display = 'none';
         importantTable.style.display = 'block';
         toggleBtn.innerHTML = '<i class="bi bi-caret-down"></i> Show all days';
-        
-        // Update counts for important holidays view  
-        const importantStaffCount = importantTable.querySelectorAll('tbody tr:not([colspan])').length;
-        staffCountSpan.textContent = importantStaffCount;
-        holidayCountSpan.textContent = yearData[year].importantColumns;
     }
 }
 
@@ -351,17 +339,10 @@ function resetHolidayView(year) {
     const importantTable = document.getElementById('importantTable' + year);
     const allTable = document.getElementById('allTable' + year);
     const toggleBtn = document.getElementById('toggleBtn' + year);
-    const staffCountSpan = document.getElementById('staffCount' + year);
-    const holidayCountSpan = document.getElementById('holidayCount' + year);
     
     allTable.style.display = 'none';
     importantTable.style.display = 'block';
     toggleBtn.innerHTML = '<i class="bi bi-caret-down"></i> Show all days';
-    
-    // Update counts for important holidays view
-    const importantStaffCount = importantTable.querySelectorAll('tbody tr:not([colspan])').length;
-    staffCountSpan.textContent = importantStaffCount;
-    holidayCountSpan.textContent = yearData[year].importantColumns;
 }
 
 // Update master button state based on individual year states

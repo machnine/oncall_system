@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var toggleIcon = this.querySelector('i');
             
             // Use the button's current icon state to determine action
-            var isCurrentlyShowingCollapseIcon = toggleIcon.classList.contains('bi-caret-up-fill');
+            var isCurrentlyShowingCollapseIcon = toggleIcon.classList.contains('bi-caret-up');
             
             if (isCurrentlyShowingCollapseIcon) {
                 // Button is showing "collapse" icon, so collapse ALL
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapse);
                     bsCollapse.hide();
                 });
-                toggleIcon.className = 'bi bi-caret-down-fill';                
+                toggleIcon.className = 'bi bi-caret-down';                
                 this.setAttribute('title', 'Expand all blocks');
             } else {
                 // Button is showing "expand" icon, so expand ALL
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapse);
                     bsCollapse.show();
                 });
-                toggleIcon.className = 'bi bi-caret-up-fill';                
+                toggleIcon.className = 'bi bi-caret-up';                
                 this.setAttribute('title', 'Collapse all blocks');
             }
             
