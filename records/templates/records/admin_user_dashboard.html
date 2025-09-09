@@ -1,4 +1,5 @@
 {% extends "records/base.html" %}
+{% load static %}
 {% block title %}
     {{ staff.user.get_full_name|default:staff.user.username }} - {{ current_month }}
 {% endblock title %}
